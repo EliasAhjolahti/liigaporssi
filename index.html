@@ -206,6 +206,25 @@ tr.banned td { opacity: .5; }
 .foot a { color: var(--blue); }
 @media (prefers-reduced-motion: no-preference) { .slot { transition: border-color .2s, box-shadow .2s; } }
 
+/* Trade on a chosen day */
+.swaptitle { font-size: 22px; text-transform: uppercase; margin-top: 2px; }
+.swaptitle span { color: var(--red); }
+.ticks { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-family: var(--font-display); letter-spacing: .04em; }
+.swaplist { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 12px; }
+.swapcard { border: 1px solid var(--line); border-radius: 10px; background: var(--sunk); display: flex; flex-direction: column; min-width: 0; }
+.swapcard .outp { padding: 10px 12px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.swapcard .outp .nm { font-weight: 600; }
+.swapcard .outp .t { font-size: 12px; color: var(--muted); }
+.swapcard .outp .g { font-family: var(--font-display); font-weight: 700; font-size: 18px; text-align: right; line-height: 1.1; }
+.swapcard .outp .g small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+.swapcard ol { list-style: none; margin: 0; padding: 0; }
+.swapcard li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 12px; align-items: center; }
+.swapcard li + li { border-top: 1px dashed var(--line); }
+.swapcard li .t { font-size: 12px; color: var(--muted); }
+.swapcard li .gain { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--good); white-space: nowrap; }
+.swapcard li .gain.neg { color: var(--muted); }
+.swapcard .keep { padding: 10px 12px; font-size: 13px; color: var(--muted); }
+
 /* Player links */
 .plink { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; text-align: left; }
 .plink:hover { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
@@ -350,6 +369,17 @@ details.allgames .tablewrap { margin-top: 8px; max-height: 280px; }
     </div>
     <div class="tablewrap"><table class="grid" id="timeline"></table></div>
     <div class="legend"><span><span class="cell h">TAP</span>home game</span><span><span class="cell a">@TAP</span>away game</span><span>Red line: trade takes effect from this day</span></div>
+
+    <div class="panel swapper" id="swapper">
+      <div><div class="eyebrow">Trade on a chosen day</div>
+        <h3 class="swaptitle">Trade before <span id="swapDayLbl">–</span>, keep until <span id="swapEndLbl">–</span></h3>
+        <p class="hint">Pick the day you want to make a trade. For each player in your lineup, you'll see the best replacements for that stretch of games and how many LPP each swap gains.</p></div>
+      <div class="planctl">
+        <div class="field"><div class="row-between"><label for="swapDay">Trade before</label><b id="swapDayV"></b></div><input id="swapDay" type="range" min="0" max="1" step="1" value="0"><div class="ticks" id="swapTicks"></div></div>
+        <div class="field"><div class="row-between"><label for="swapEnd">Keep until</label><b id="swapEndV"></b></div><input id="swapEnd" type="range" min="1" max="1" step="1" value="1"><p class="hint" id="swapSpan"></p></div>
+      </div>
+      <div class="swaplist" id="swaplist"></div>
+    </div>
   </section>
 
   <section aria-label="Schedule">
@@ -1000,7 +1030,51 @@ function openCard(id) {
 }
 function closeCard() { CARD = null; const dlg = $("card"); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
 
-function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSchedule(); renderPeriods(); renderTable(); if (CARD) openCard(CARD); }
+// ---------- trade on a chosen day ----------
+// SW.day / SW.end are ISO dates, so the choice survives window changes. The trade is made before
+// game day `day`; the new player is kept through game day `end`.
+const SW = { day: store.get("swapDay", null), end: store.get("swapEnd", null) };
+function renderSwap() {
+  const days = PWIN.days, T = days.length, box = $("swapper");
+  if (T < 1 || !TEAM.list.length) { box.hidden = true; return; }
+  box.hidden = false;
+  let d = SW.day ? days.findIndex(x => x >= SW.day) : 0; if (d < 0) d = T - 1;
+  let e = SW.end ? days.findIndex(x => x >= SW.end) : T - 1; if (e < 0 || e < d) e = T - 1;
+  const ds = $("swapDay"), es = $("swapEnd");
+  ds.max = T - 1; ds.value = d; es.min = d; es.max = T - 1; es.value = e;
+  const started = PWIN.per && PWIN.per.start <= TODAY;
+  $("swapDayLbl").textContent = dayShort(days[d]);
+  $("swapEndLbl").textContent = e === T - 1 ? "period end" : dayShort(days[e]);
+  $("swapDayV").textContent = dayShort(days[d]);
+  $("swapEndV").textContent = dayShort(days[e]);
+  $("swapSpan").textContent = `${e - d + 1} game day${e === d ? "" : "s"}${d === 0 && !started ? " · before the period starts, changes are free" : d > 0 ? ` · make the trade after the points from ${dayShort(days[d - 1])} are updated` : ""}`;
+  // month ticks under the trade-day slider
+  const first = days[0], last = days[T - 1];
+  $("swapTicks").innerHTML = `<span>${dayShort(first)}</span><span>${dayShort(days[Math.floor((T - 1) / 2)])}</span><span>${dayShort(last)}</span>`;
+  const a = d, b = e + 1; // half-open range of game-day indices
+  const G = p => PWIN.pre[p.t][b] - PWIN.pre[p.t][a];
+  const V = p => p.ept * G(p);
+  const cost = TEAM.list.reduce((s, p) => s + p.v, 0), left = S.budget - cost;
+  const inTeam = new Set(TEAM.list.map(p => p.id));
+  const order = { G: 0, D: 1, F: 2 };
+  const cards = TEAM.list.map(o => {
+    const opts = DATA.filter(q => q.p === o.p && !inTeam.has(q.id) && !S.bans.has(q.id) && q.gp >= S.minGp && q.v <= o.v + left && q.ept > 0)
+      .map(q => ({ q, gain: V(q) - V(o) })).sort((x, y) => y.gain - x.gain).slice(0, 3);
+    return { o, opts, best: opts.length ? opts[0].gain : -Infinity };
+  }).sort((x, y) => y.best - x.best || order[x.o.p] - order[y.o.p]);
+  $("swaplist").innerHTML = cards.map(({ o, opts }) => `
+    <div class="swapcard">
+      <div class="outp"><div><span class="ptag">${POSNAME[o.p]}</span> <span class="nm">${plink(o)}</span><div class="t">${esc(o.t)} · ${k(o.v)} · ${f1(o.ept)} LPP per team game</div></div>
+        <div class="g">${G(o)}<small>GAMES</small></div></div>
+      ${opts.length && opts[0].gain <= 0 ? `<div class="keep"><b>Keep.</b> No affordable player gains LPP over these games. Closest options:</div>` : ""}
+      ${opts.length ? `<ol>${opts.map(({ q, gain }) => `<li>
+          <div>${plink(q)}<div class="t">${esc(q.t)} · ${G(q)} games · ${k(q.v)}${q.v > o.v ? ` (+${k(q.v - o.v)})` : ""} · ${f1(V(q))} proj.</div></div>
+          <span class="gain${gain > 0 ? "" : " neg"}">${gain > 0 ? "+" : ""}${f1(gain)}</span></li>`).join("")}</ol>`
+        : `<div class="keep">No affordable player at this position.</div>`}
+    </div>`).join("");
+}
+
+function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSwap(); renderSchedule(); renderPeriods(); renderTable(); if (CARD) openCard(CARD); }
 
 // ---------- controls ----------
 $("updated").textContent = META.updated ? dt(META.updated).toLocaleDateString("fi-FI") : "";
@@ -1069,6 +1143,17 @@ $("hper").addEventListener("change", e => { HP.per = +e.target.value; renderPeri
 $("hpos").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return; HP.pos = b.dataset.v;
   [...$("hpos").children].forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === HP.pos))); renderPeriods();
+});
+$("swapDay").addEventListener("input", e => {
+  const days = PWIN.days, d = +e.target.value;
+  SW.day = days[d];
+  if (SW.end && SW.end < SW.day) SW.end = null; // keep-until can't be before the trade day
+  store.set("swapDay", SW.day); store.set("swapEnd", SW.end); renderSwap();
+});
+$("swapEnd").addEventListener("input", e => {
+  const days = PWIN.days, i = +e.target.value;
+  SW.end = i === days.length - 1 ? null : days[i];
+  store.set("swapEnd", SW.end); renderSwap();
 });
 $("card").addEventListener("close", () => { CARD = null; });
 $("card").addEventListener("click", e => { if (e.target === $("card")) closeCard(); }); // click on the backdrop

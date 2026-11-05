@@ -44,6 +44,8 @@ The trade planner always looks at the rest of the selected period and starts fro
 
 Each suggestion shows when to make the trade. For example, "before **ti 15.12.**, after su 13.12." means: make the trade after the points from 13.12 are updated and before the first game on 15.12. Trades lock when the first game of a game day starts. The timeline under the list shows each lineup slot day by day, and a red line marks the day a new player takes over.
 
+**Trade on a chosen day.** Below the timeline, use the **Trade before** slider to pick the day you want to make a trade (for example ti 1.12.). Use **Keep until** to pick how long you'd keep the new player; the default is the end of the period. For each player in your lineup, the cards show how many games their team plays in that stretch, and the 3 best affordable replacements with their games and LPP gain. The player with the biggest possible gain is listed first. If no one gains points, the card says **Keep**. A replacement is affordable if it costs no more than the player's price plus your money left.
+
 The schedule grid shows which teams have the most games and the longest breaks. Click a team name to see that team's players in the table.
 
 ### Player cards and past periods
