@@ -244,6 +244,26 @@ tr.banned td { opacity: .5; }
 .swapcard li .gain { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--good); white-space: nowrap; }
 .swapcard li .gain.neg { color: var(--muted); }
 .swapcard .keep { padding: 10px 12px; font-size: 13px; color: var(--muted); }
+.swapbest { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border: 1px solid var(--good); border-radius: 10px; background: var(--surface); font-size: 16px; }
+.swapbest .gain, .bestday .gain, .vline .gain, .alts .gain { font-family: var(--font-display); font-weight: 700; color: var(--good); white-space: nowrap; }
+.swapcard .outp { align-items: center; }
+.bestday { padding: 8px 12px; font-size: 13px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.swslide { padding: 10px 12px 4px; display: flex; flex-direction: column; gap: 4px; }
+.swslide label { font-family: var(--font-display); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.swslide b { font-family: var(--font-display); font-size: 18px; color: var(--red); }
+.swbody { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.swstrips { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 8px; align-items: center; }
+.swlab { font-size: 11px; font-weight: 600; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.swlab.in { color: var(--good); }
+.ds.gone { opacity: .18; }
+.ds.none { background: transparent; }
+.ds.cut { box-shadow: -2px 0 0 var(--ink); }
+.verdict { font-size: 14px; line-height: 1.4; border-radius: 8px; padding: 8px 10px; background: var(--surface); border: 1px solid var(--line); }
+.verdict.good { border-color: var(--good); }
+.verdict .vline { font-size: 15px; }
+.verdict .vsub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.alts { font-size: 12px; line-height: 1.6; }
+.alts .t { color: var(--muted); }
 .swapcard .cardfoot { margin-top: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); }
 .keepbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: 500 13px var(--font-body); cursor: pointer; }
 .keepbtn:hover { border-color: var(--ink); }
@@ -406,13 +426,10 @@ details.allgames .tablewrap { margin-top: 8px; max-height: 280px; }
     <div class="legend"><span><span class="cell h">TAP</span>home game</span><span><span class="cell a">@TAP</span>away game</span><span>Red line: trade takes effect from this day</span></div>
 
     <div class="panel swapper" id="swapper">
-      <div><div class="eyebrow">Trade on a chosen day</div>
-        <h3 class="swaptitle">Trade before <span id="swapDayLbl">–</span>, keep until <span id="swapEndLbl">–</span></h3>
-        <p class="hint">Pick the day you want to make a trade. For each player in your lineup, you'll see the best replacements for that stretch of games and how many LPP each swap gains.</p></div>
-      <div class="planctl">
-        <div class="field"><div class="row-between"><label for="swapDay">Trade before</label><b id="swapDayV"></b></div><input id="swapDay" type="range" min="0" max="1" step="1" value="0"><div class="ticks" id="swapTicks"></div></div>
-        <div class="field"><div class="row-between"><label for="swapEnd">Keep until</label><b id="swapEndV"></b></div><input id="swapEnd" type="range" min="1" max="1" step="1" value="1"><p class="hint" id="swapSpan"></p></div>
-      </div>
+      <div><div class="eyebrow">Switch one player</div>
+        <h3 class="swaptitle">Who to switch, and when</h3>
+        <p class="hint">Each of your players has a card with its own slider. Move the slider to the day you'd make the trade. The two rows show who plays on which day: your current player until the trade, then the best replacement after it. The card tells you exactly what to do and how many LPP you gain. Cards are sorted so the best switch is first.</p></div>
+      <div class="swapbest" id="swapbest"></div>
       <div class="swaplist" id="swaplist"></div>
     </div>
   </section>
@@ -1083,51 +1100,95 @@ function openCard(id) {
 }
 function closeCard() { CARD = null; const dlg = $("card"); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
 
-// ---------- trade on a chosen day ----------
-// SW.day / SW.end are ISO dates, so the choice survives window changes. The trade is made before
-// game day `day`; the new player is kept through game day `end`.
-const SW = { day: store.get("swapDay", null), end: store.get("swapEnd", null) };
+// ---------- switch one player ----------
+// Every lineup player has their own trade day (SWP[id] = ISO date of the first game day the new
+// player would play). The new player is kept until the end of the period.
+const SWP = store.get("swapDays", {});
+let SWCTX = null; // shared numbers for the current render
+function swapOptions(o, d) {
+  const { T, left, inTeam } = SWCTX;
+  const G = (p, a) => PWIN.pre[p.t][T] - PWIN.pre[p.t][a];
+  const oV = o.ept * G(o, d);
+  return DATA.filter(q => q.p === o.p && !inTeam.has(q.id) && !S.bans.has(q.id) && q.gp >= S.minGp && q.v <= o.v + left && q.ept > 0)
+    .map(q => ({ q, gain: q.ept * G(q, d) - oV, games: G(q, d) }))
+    .sort((x, y) => y.gain - x.gain).slice(0, 3);
+}
+function bestDayFor(o) {
+  let best = { gain: -Infinity, d: 0, q: null };
+  for (let d = 0; d < SWCTX.T; d++) {
+    const top = swapOptions(o, d)[0];
+    if (top && top.gain > best.gain + 1e-9) best = { gain: top.gain, d, q: top.q };
+  }
+  return best;
+}
+const gms = n => `${n} game${n === 1 ? "" : "s"}`;
+function swapDayIndex(o, best) {
+  const days = PWIN.days;
+  if (SWP[o.id]) { const i = days.findIndex(x => x >= SWP[o.id]); if (i >= 0) return i; }
+  return best.gain > 0 ? best.d : 0;
+}
+function swapBody(o, d, best) {
+  const days = PWIN.days, T = days.length, by = PWIN.by;
+  const opts = swapOptions(o, d), top = opts[0];
+  const oG = PWIN.pre[o.t][T] - PWIN.pre[o.t][d];
+  const started = PWIN.per && PWIN.per.start <= TODAY;
+  const when = d === 0
+    ? (started ? `before the first game on ${dayShort(days[0])}` : `before the period starts (${dayShort(days[0])}). Changes before the start are free`)
+    : `after the points from ${dayShort(days[d - 1])} are updated, and before the first game on ${dayShort(days[d])}`;
+  // two strips: current player until the trade, replacement after it
+  const cols = `grid-template-columns:repeat(${T},minmax(0,1fr))`;
+  const rowO = days.map((_, i) => `<span class="ds ${by[o.t][i] ? "on" : "off"}${i >= d ? " gone" : ""}${i === d ? " cut" : ""}" title="${dayShort(days[i])} · ${esc(o.n)}: ${by[o.t][i] ? (by[o.t][i].home ? "vs " : "@ ") + esc(by[o.t][i].opp) : "no game"}"></span>`).join("");
+  const rowQ = top ? days.map((_, i) => i < d ? `<span class="ds none"></span>` : `<span class="ds ${by[top.q.t][i] ? "on" : "off"}${i === d ? " cut" : ""}" title="${dayShort(days[i])} · ${esc(top.q.n)}: ${by[top.q.t][i] ? (by[top.q.t][i].home ? "vs " : "@ ") + esc(by[top.q.t][i].opp) : "no game"}"></span>`).join("") : "";
+  const strips = `<div class="swstrips">
+      <span class="swlab" title="${esc(o.n)}">${esc(o.n.split(" ")[0])}</span><div class="dsrow" style="${cols}">${rowO}</div>
+      ${top ? `<span class="swlab in" title="${esc(top.q.n)}">${esc(top.q.n.split(" ")[0])}</span><div class="dsrow" style="${cols}">${rowQ}</div>` : ""}
+    </div>`;
+  let verdict;
+  if (!top) verdict = `<div class="verdict keepv"><b>Keep ${esc(o.n)}.</b> No affordable player at this position.</div>`;
+  else if (top.gain > 0) verdict = `<div class="verdict good">
+      <div class="vline">Sell <b>${plink(o)}</b> → buy <b>${plink(top.q)}</b> <span class="gain">+${f1(top.gain)} LPP</span></div>
+      <div class="vsub">${esc(o.t)} ${gms(oG)} → ${esc(top.q.t)} ${gms(top.games)} from ${dayShort(days[d])} to the end of the period · ${k(o.v)} → ${k(top.q.v)}</div>
+      <div class="vsub">Make the trade ${when}${when.endsWith(".") ? "" : "."}</div></div>`;
+  else verdict = `<div class="verdict keepv"><b>Keep ${esc(o.n)} on this day.</b> The best option, ${plink(top.q)} (${esc(top.q.t)}, ${gms(top.games)}), would score ${f1(-top.gain)} LPP less.</div>`;
+  const others = opts.slice(1).filter(x => x.gain > 0);
+  return `${strips}${verdict}
+    ${others.length ? `<div class="alts"><span class="hint">Other options:</span> ${others.map(x => `${plink(x.q)} <span class="t">(${esc(x.q.t)}, ${gms(x.games)}, ${k(x.q.v)})</span> <b class="gain">+${f1(x.gain)}</b>`).join(" · ")}</div>` : ""}`;
+}
+function updateSwapCard(id) {
+  const o = BYID.get(id), el = document.getElementById("swb-" + id);
+  if (!o || !el || !SWCTX) return;
+  const d = swapDayIndex(o, SWCTX.best[id]);
+  el.innerHTML = swapBody(o, d, SWCTX.best[id]);
+  const v = document.getElementById("swv-" + id); if (v) v.textContent = dayShort(PWIN.days[d]);
+}
 function renderSwap() {
   const days = PWIN.days, T = days.length, box = $("swapper");
   if (T < 1 || !TEAM.list.length) { box.hidden = true; return; }
   box.hidden = false;
-  let d = SW.day ? days.findIndex(x => x >= SW.day) : 0; if (d < 0) d = T - 1;
-  let e = SW.end ? days.findIndex(x => x >= SW.end) : T - 1; if (e < 0 || e < d) e = T - 1;
-  const ds = $("swapDay"), es = $("swapEnd");
-  ds.max = T - 1; ds.value = d; es.min = d; es.max = T - 1; es.value = e;
-  const started = PWIN.per && PWIN.per.start <= TODAY;
-  $("swapDayLbl").textContent = dayShort(days[d]);
-  $("swapEndLbl").textContent = e === T - 1 ? "period end" : dayShort(days[e]);
-  $("swapDayV").textContent = dayShort(days[d]);
-  $("swapEndV").textContent = dayShort(days[e]);
-  $("swapSpan").textContent = `${e - d + 1} game day${e === d ? "" : "s"}${d === 0 && !started ? " · before the period starts, changes are free" : d > 0 ? ` · make the trade after the points from ${dayShort(days[d - 1])} are updated` : ""}`;
-  // month ticks under the trade-day slider
-  const first = days[0], last = days[T - 1];
-  $("swapTicks").innerHTML = `<span>${dayShort(first)}</span><span>${dayShort(days[Math.floor((T - 1) / 2)])}</span><span>${dayShort(last)}</span>`;
-  const a = d, b = e + 1; // half-open range of game-day indices
-  const G = p => PWIN.pre[p.t][b] - PWIN.pre[p.t][a];
-  const V = p => p.ept * G(p);
-  const cost = TEAM.list.reduce((s, p) => s + p.v, 0), left = S.budget - cost;
-  const inTeam = new Set(TEAM.list.map(p => p.id));
+  const cost = TEAM.list.reduce((s, p) => s + p.v, 0);
+  SWCTX = { T, left: S.budget - cost, inTeam: new Set(TEAM.list.map(p => p.id)), best: {} };
+  for (const o of TEAM.list) SWCTX.best[o.id] = bestDayFor(o);
   const order = { G: 0, D: 1, F: 2 };
-  const cards = TEAM.list.map(o => {
-    const opts = DATA.filter(q => q.p === o.p && !inTeam.has(q.id) && !S.bans.has(q.id) && q.gp >= S.minGp && q.v <= o.v + left && q.ept > 0)
-      .map(q => ({ q, gain: V(q) - V(o) })).sort((x, y) => y.gain - x.gain).slice(0, 3);
-    return { o, opts, best: opts.length ? opts[0].gain : -Infinity };
-  }).sort((x, y) => S.keep.has(x.o.id) - S.keep.has(y.o.id) || y.best - x.best || order[x.o.p] - order[y.o.p]);
-  $("swaplist").innerHTML = cards.map(({ o, opts }) => {
-    const kept = S.keep.has(o.id);
-    const head = `<div class="outp"><div><span class="ptag">${POSNAME[o.p]}</span> <span class="nm">${plink(o)}</span>${kept ? ' <span class="lockedtag">Locked</span>' : ""}<div class="t">${esc(o.t)} · ${k(o.v)} · ${f1(o.ept)} LPP per team game</div></div>
-        <div class="g">${G(o)}<small>GAMES</small></div></div>`;
+  const list = [...TEAM.list].sort((x, y) => S.keep.has(x.id) - S.keep.has(y.id) || SWCTX.best[y.id].gain - SWCTX.best[x.id].gain || order[x.p] - order[y.p]);
+  // headline: the single best switch
+  const top = list.find(o => !S.keep.has(o.id) && SWCTX.best[o.id].gain > 0);
+  $("swapbest").innerHTML = top
+    ? `<span class="eyebrow">Best switch this period</span><div>Sell ${plink(top)} → buy ${plink(SWCTX.best[top.id].q)} before <b>${dayShort(days[SWCTX.best[top.id].d])}</b> <span class="gain">+${f1(SWCTX.best[top.id].gain)} LPP</span></div>`
+    : `<span class="eyebrow">Best switch this period</span><div>None. Keeping your lineup is best for the rest of the period.</div>`;
+  $("swaplist").innerHTML = list.map(o => {
+    const kept = S.keep.has(o.id), best = SWCTX.best[o.id];
     const btn = `<button type="button" class="keepbtn" data-act="keep" data-id="${o.id}" aria-pressed="${kept}">${ICON.lock}${kept ? "Unlock" : "Lock (don't trade)"}</button>`;
-    if (kept) return `<div class="swapcard kept">${head}<div class="keep">This player stays in your team. The optimizer and the trade planner won't change them.</div><div class="cardfoot">${btn}</div></div>`;
-    return `<div class="swapcard">${head}
-      ${opts.length && opts[0].gain <= 0 ? `<div class="keep"><b>Keep.</b> No affordable player gains LPP over these games. Closest options:</div>` : ""}
-      ${opts.length ? `<ol>${opts.map(({ q, gain }) => `<li>
-          <div>${plink(q)}<div class="t">${esc(q.t)} · ${G(q)} game${G(q) === 1 ? "" : "s"} · ${k(q.v)}${q.v > o.v ? ` (+${k(q.v - o.v)})` : ""} · ${f1(V(q))} proj.</div></div>
-          <span class="gain${gain > 0 ? "" : " neg"}">${gain > 0 ? "+" : ""}${f1(gain)}</span></li>`).join("")}</ol>`
-        : `<div class="keep">No affordable player at this position.</div>`}
-      <div class="cardfoot">${btn}</div>
+    const head = `<div class="outp"><div><span class="ptag">${POSNAME[o.p]}</span> <span class="nm">${plink(o)}</span>${kept ? ' <span class="lockedtag">Locked</span>' : ""}<div class="t">${esc(o.t)} · ${k(o.v)} · ${gms(PWIN.cnt[o.t])} left this period</div></div>${btn}</div>`;
+    if (kept) return `<div class="swapcard kept">${head}<div class="keep">This player stays in your team. The optimizer and the trade planner won't change them.</div></div>`;
+    const d = swapDayIndex(o, best);
+    const bestLine = best.gain > 0
+      ? `<div class="bestday">Best time to sell: <b>before ${dayShort(days[best.d])}</b> → ${plink(best.q)} <span class="gain">+${f1(best.gain)}</span> <button type="button" class="linkbtn" data-bestday="${days[best.d]}" data-id="${o.id}">Show this day</button></div>`
+      : `<div class="bestday">Best: <b>keep for the whole period.</b> No trade gains LPP.</div>`;
+    return `<div class="swapcard">${head}${bestLine}
+      <div class="swslide"><div class="row-between"><label for="sw-${o.id}">Trade before</label><b id="swv-${o.id}">${dayShort(days[d])}</b></div>
+        <input class="swslider" id="sw-${o.id}" data-id="${o.id}" type="range" min="0" max="${T - 1}" step="1" value="${d}" aria-label="Trade day for ${esc(o.n)}">
+        <div class="ticks"><span>${dayShort(days[0])}</span><span>${dayShort(days[T - 1])}</span></div></div>
+      <div class="swbody" id="swb-${o.id}">${swapBody(o, d, best)}</div>
     </div>`;
   }).join("");
 }
@@ -1202,16 +1263,17 @@ $("hpos").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return; HP.pos = b.dataset.v;
   [...$("hpos").children].forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === HP.pos))); renderPeriods();
 });
-$("swapDay").addEventListener("input", e => {
-  const days = PWIN.days, d = +e.target.value;
-  SW.day = days[d];
-  if (SW.end && SW.end < SW.day) SW.end = null; // keep-until can't be before the trade day
-  store.set("swapDay", SW.day); store.set("swapEnd", SW.end); renderSwap();
+$("swaplist").addEventListener("input", e => {
+  const sl = e.target.closest(".swslider"); if (!sl) return;
+  const id = sl.dataset.id;
+  SWP[id] = PWIN.days[+sl.value]; store.set("swapDays", SWP);
+  updateSwapCard(id); // only this card's body, so the slider keeps focus while dragging
 });
-$("swapEnd").addEventListener("input", e => {
-  const days = PWIN.days, i = +e.target.value;
-  SW.end = i === days.length - 1 ? null : days[i];
-  store.set("swapEnd", SW.end); renderSwap();
+$("swaplist").addEventListener("click", e => {
+  const b = e.target.closest("[data-bestday]"); if (!b) return;
+  SWP[b.dataset.id] = b.dataset.bestday; store.set("swapDays", SWP);
+  const sl = document.getElementById("sw-" + b.dataset.id); if (sl) sl.value = PWIN.days.indexOf(b.dataset.bestday);
+  updateSwapCard(b.dataset.id);
 });
 $("card").addEventListener("close", () => { CARD = null; });
 $("card").addEventListener("click", e => { if (e.target === $("card")) closeCard(); }); // click on the backdrop

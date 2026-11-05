@@ -46,7 +46,17 @@ The trade planner always looks at the rest of the selected period and starts fro
 
 Each suggestion shows when to make the trade. For example, "before **ti 15.12.**, after su 13.12." means: make the trade after the points from 13.12 are updated and before the first game on 15.12. Trades lock when the first game of a game day starts. The timeline under the list shows each lineup slot day by day, and a red line marks the day a new player takes over.
 
-**Trade on a chosen day.** Below the timeline, use the **Trade before** slider to pick the day you want to make a trade (for example ti 1.12.). Use **Keep until** to pick how long you'd keep the new player; the default is the end of the period. For each player in your lineup, the cards show how many games their team plays in that stretch, and the 3 best affordable replacements with their games and LPP gain. The player with the biggest possible gain is listed first. If no one gains points, the card says **Keep**. A replacement is affordable if it costs no more than the player's price plus your money left.
+**Switch one player.** Below the timeline, every player in your lineup has their own card with its own **Trade before** slider. A green box at the top shows the single best switch for the period.
+
+On each card:
+
+- **Best time to sell** shows the day when selling this player gains the most, and who to buy then. **Show this day** moves the slider there.
+- **Trade before** is the slider. Move it to the day you'd make the trade, for example ti 1.12.
+- **Two strips** show one cell per game day. The first row is your current player, faded after the trade day because they're sold. The second row is the best replacement from the trade day on. Blue is a game and red is no game. Hover a cell to see the opponent.
+- **The green box** tells you what to do, for example "Sell Sustr → buy Lajunen +18.0 LPP: Jukurit 2 games → K-Espoo 4 games. Make the trade after the points from pe 11.12. are updated, and before the first game on la 12.12."
+- **"Keep"** appears when no trade gains points on that day. It also shows how close the best option is.
+
+Cards are sorted so the player worth switching most is first. The new player is kept until the end of the period. A replacement is affordable if it costs no more than the player's price plus your money left.
 
 To keep a player no matter what, click **Lock (don't trade)** on their card. The card turns dark grey and says **Locked**. That player stays in your lineup, and neither the optimizer nor the trade planner will change them. You can lock as many players as you like. Click **Unlock** on the card, or remove the "no trades" chip in the left panel, to undo it.
 
