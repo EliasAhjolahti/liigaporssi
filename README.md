@@ -32,6 +32,13 @@ Open `index.html` in a browser. It's a single file with no server or install nee
 5. **Captain bonus.** Turn this off to rank teams without the ×1.3 multiplier.
 6. **Lock and exclude buttons.** Each player card and table row has a lock button and an exclude (✕) button. The team updates right away. Your locked and excluded players appear in the left panel, and **Clear all** removes them.
 
+**Pick from a team.** Want a player from a particular team? Click **Swap** on a player card on the rink, or use the **Pick from a team** panel under the rink:
+
+1. **Replace:** choose which of your six players to replace.
+2. **Team:** choose the team you want. Each team shows its number of games in the window.
+3. The panel lists that team's best players at that position, ranked by the metric you optimize for. It shows each player's price, games and how they compare with your current player. The money for the spot is the current player's price plus your money left. The best player who fits is marked **Best fit**, and players you can't afford are greyed out, with how much they're over.
+4. **Swap in** puts the new player in that spot. Your other five players are locked so they stay. Unlock any of them in the left panel to let the optimizer change them again.
+
 Each player card on the rink has a strip with one cell per game day in the window. Blue means their team plays that day, and red means there's no game. The label under the strip shows how many game days the player sits out. Hover a cell to see the date and opponent. Days without a game are also marked red in the lineup timeline in the trade planner.
 
 Players in the optimized team are highlighted in the table, and the captain is marked with **C**. Your settings are saved in your browser.
