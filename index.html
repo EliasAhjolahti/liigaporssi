@@ -26,6 +26,7 @@
   --kept-ink: #f1f4f6;
   --kept-muted: #bac4cd;
   --kept-line: #58626c;
+  --offday: #f8dde1;    /* lineup timeline: day without a game */
   --font-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
 }
@@ -34,14 +35,14 @@
     --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
     --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
     --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
-    --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; color-scheme: dark;
+    --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; --offday: #3f1b22; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
   --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
   --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
-  --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; color-scheme: dark;
+  --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; --offday: #3f1b22; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -210,6 +211,21 @@ tr.banned td { opacity: .5; }
 .foot a { color: var(--blue); }
 @media (prefers-reduced-motion: no-preference) { .slot { transition: border-color .2s, box-shadow .2s; } }
 
+/* Game-day strip on lineup cards */
+.daystrip { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.dsrow { display: grid; gap: 1px; }
+.ds { height: 12px; border-radius: 2px; }
+.ds.on { background: var(--game); }
+.ds.off { background: var(--red); opacity: .85; }
+.dslab { display: flex; justify-content: space-between; gap: 4px; font-size: 10px; color: var(--muted); font-family: var(--font-display); letter-spacing: .04em; }
+.dslab .offtxt { color: var(--red); font-weight: 700; }
+.rinklegend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.rinklegend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+.rinklegend i.on { background: var(--game); }
+.rinklegend i.off { background: var(--red); opacity: .85; }
+.grid td.offday { background: var(--offday); }
+.grid tr.mine td.offday { background: var(--offday); }
+
 /* Trade on a chosen day */
 .swaptitle { font-size: 22px; text-transform: uppercase; margin-top: 2px; }
 .swaptitle span { color: var(--red); }
@@ -362,6 +378,7 @@ details.allgames .tablewrap { margin-top: 8px; max-height: 280px; }
         <div class="line g" id="lineG"></div>
         <div class="crease"></div>
       </div>
+      <div class="rinklegend" id="rinklegend"><span><i class="on"></i>team plays</span><span><i class="off"></i>no game that day</span><span id="rinkdays"></span></div>
     </div>
   </section>
 
@@ -722,10 +739,25 @@ function slotHTML(p, posLabel) {
     <div class="nm">${plink(p)}</div>
     <div class="tm">${esc(p.t)} · ${games(p)} games left · ${p.lpp} LPP</div>
     <div class="nums"><span class="l">${val}</span><span>${k(p.v)}</span></div>
+    ${dayStrip(p)}
     <div class="acts">
       <button class="iconbtn lock${lk ? " on" : ""}" data-act="lock" data-id="${p.id}" title="${lk ? "Unlock" : "Lock into team"}" aria-label="${lk ? "Unlock" : "Lock"} ${esc(p.n)}">${ICON.lock}</button>
       <button class="iconbtn ban" data-act="ban" data-id="${p.id}" title="Exclude and find the next best" aria-label="Exclude ${esc(p.n)}">${ICON.ban}</button>
     </div>
+  </div>`;
+}
+
+// One cell per game day in the window: blue = the player's team plays, red = no game that day.
+function dayStrip(p) {
+  const days = WIN.days, by = WIN.by[p.t];
+  if (!days.length || !by) return "";
+  const played = by.filter(Boolean).length, off = days.length - played;
+  return `<div class="daystrip" role="img" aria-label="${played} of ${days.length} game days with a game, ${off} without">
+    <div class="dsrow" style="grid-template-columns:repeat(${days.length},minmax(0,1fr))">${days.map((d, i) => {
+      const x = by[i];
+      return `<span class="ds ${x ? "on" : "off"}" title="${dayShort(d)} · ${x ? (x.home ? "vs " : "@ ") + esc(x.opp) : "no game"}"></span>`;
+    }).join("")}</div>
+    <div class="dslab"><span>${dayShort(days[0])}</span><span class="${off ? "offtxt" : ""}">${off} day${off === 1 ? "" : "s"} off</span><span>${dayShort(days[days.length - 1])}</span></div>
   </div>`;
 }
 
@@ -771,6 +803,7 @@ function renderLineup() {
   const g = r.team.reduce((s, p) => s + games(p), 0);
   $("tGames").textContent = g;
   $("tGamesS").textContent = `player-games in ${WIN.days.length} game days`;
+  $("rinkdays").textContent = WIN.days.length ? `Game days ${dayShort(WIN.days[0])}–${dayShort(WIN.days[WIN.days.length - 1])} · hover a day to see the opponent` : "";
 }
 
 function renderPinned() {
@@ -825,7 +858,7 @@ function renderPlanner() {
       const x = PWIN.by[seg.p.t][i];
       if (x) { g++; playing[i]++; }
       const swap = slot.segs.some(s => s.from === i && i > 0);
-      return `<td class="${weekStart(days, i) ? "wk " : ""}${swap ? "swapday" : ""}" title="${esc(seg.p.n)} (${esc(seg.p.t)})">${gameCell(x)}</td>`;
+      return `<td class="${weekStart(days, i) ? "wk " : ""}${swap ? "swapday " : ""}${x ? "" : "offday"}" title="${esc(seg.p.n)} (${esc(seg.p.t)})${x ? "" : " · no game"}">${gameCell(x)}</td>`;
     }).join("");
     html += `<tr><td class="stick" title="${esc(slot.segs.map(s => s.p.n).join(" → "))}"><span class="ptag">${POSNAME[slot.pos]}</span> ${names}</td><td class="n">${g}</td>${cells}</tr>`;
   }
