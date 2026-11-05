@@ -4,7 +4,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <style>
-/* Layout: ice-white page; builder (controls + rink lineup) on top, full sortable player table below. */
+/* Layout: ice-white page; builder (controls + rink lineup), trade planner, schedule grid, then the full player table. */
 :root {
   --bg: #edf2f5;        /* rink ice */
   --surface: #ffffff;
@@ -15,6 +15,10 @@
   --red: #c8102e;       /* center red line */
   --blue: #1f4fa0;      /* blue line */
   --blue-soft: #e3ebf7;
+  --game: #1f4fa0;      /* home game cell */
+  --game-ink: #ffffff;
+  --away: #cfdcf0;      /* away game cell */
+  --away-ink: #0f2a57;
   --good: #1d7a46;
   --warn: #a35a00;
   --rink: #f7fafc;
@@ -25,12 +29,14 @@
   :root:not([data-theme="light"]) {
     --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
     --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
+    --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
     --warn: #f0a640; --rink: #0f1b25; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
   --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
+  --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
   --warn: #f0a640; --rink: #0f1b25; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -39,14 +45,15 @@ body {
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 48px; font-variant-numeric: tabular-nums;
 }
-.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: flex; flex-direction: column; gap: 32px; }
+section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
 h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; line-height: 1; text-transform: uppercase; }
 h1 span { color: var(--red); }
 h2 { font-size: 24px; font-weight: 700; text-transform: uppercase; }
 .eyebrow { font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; border-bottom: 3px solid var(--red); padding-bottom: 14px; }
-header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
+header p, .lead { margin: 6px 0 0; color: var(--muted); max-width: 66ch; }
 .meta { font-size: 13px; color: var(--muted); text-align: right; }
 .meta b { color: var(--ink); font-weight: 600; }
 
@@ -54,8 +61,8 @@ header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
 .builder { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 860px) { .builder { grid-template-columns: minmax(0, 1fr); } }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field > label, .field > .lbl { font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .lbl, .row-between > label, .row-between > .lbl { font-family: var(--font-display); font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .money { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); }
 .money input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: 600 24px var(--font-display); padding: 8px 10px; font-variant-numeric: tabular-nums; }
 .money span { padding-right: 12px; color: var(--muted); font-weight: 600; }
@@ -65,6 +72,7 @@ header p { margin: 6px 0 0; color: var(--muted); max-width: 62ch; }
 .seg button { flex: 1; border: 0; background: transparent; color: var(--ink); padding: 8px 6px; font: 500 14px var(--font-body); cursor: pointer; }
 .seg button + button { border-left: 1px solid var(--line); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); font-weight: 600; }
+select { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 10px; font: 15px var(--font-body); }
 .chip { border: 1px solid var(--line); background: var(--sunk); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: 500 13px var(--font-body); cursor: pointer; }
 .chip:hover { border-color: var(--blue); }
 .chip[aria-pressed="true"] { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
@@ -78,6 +86,7 @@ input[type="range"] { width: 100%; accent-color: var(--blue); }
 .pinned .chip.x { text-decoration: line-through; color: var(--muted); }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .linkbtn { border: 0; background: none; color: var(--blue); font: 500 13px var(--font-body); cursor: pointer; padding: 0; text-decoration: underline; }
+.winbox { border-top: 1px solid var(--line); padding-top: 14px; }
 
 /* Rink */
 .lineup { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -87,6 +96,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .tot .k { font-family: var(--font-display); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .tot .v { font-family: var(--font-display); font-size: 28px; font-weight: 700; line-height: 1.1; }
 .tot .v.red { color: var(--red); }
+.tot .v.grn { color: var(--good); }
 .tot .s { font-size: 12px; color: var(--muted); }
 .rink {
   position: relative; border: 2px solid var(--line); border-radius: 48px; background: var(--rink);
@@ -117,7 +127,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .iconbtn.on.ban { color: var(--red); border-color: var(--red); }
 .iconbtn svg { width: 15px; height: 15px; }
 .msg { padding: 12px 14px; border-radius: 8px; border: 1px solid var(--warn); color: var(--warn); background: var(--surface); font-size: 14px; }
-.msg[hidden] { display: none; }
 @media (max-width: 560px) {
   .line.f { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .line.f .slot:last-child { grid-column: 1 / -1; justify-self: center; width: calc(50% - 5px); }
@@ -125,31 +134,74 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   .rink { border-radius: 28px; }
 }
 
-/* Table */
-.tablehead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+/* Section heads & filters */
+.sechead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 20px; }
 .filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: end; }
-.filters .field { min-width: 0; }
-.filters input[type="search"], .filters select { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 10px; font: 15px var(--font-body); }
-.filters input[type="search"] { width: 220px; max-width: 100%; }
-.filters .rangef { width: 200px; }
-.tablewrap { overflow: auto; max-height: 72vh; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.filters input[type="search"] { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 7px 10px; font: 15px var(--font-body); width: 220px; max-width: 100%; }
+.filters .rangef { width: 190px; }
+
+/* Trade planner */
+.planner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .planner { grid-template-columns: minmax(0, 1fr); } }
+.trades { display: flex; flex-direction: column; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.trade { display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; gap: 12px; padding: 12px 14px; align-items: center; }
+.trade + .trade { border-top: 1px solid var(--line); }
+.trade .when { font-family: var(--font-display); line-height: 1.15; }
+.trade .when b { display: block; font-size: 18px; font-weight: 700; }
+.trade .when span { font-size: 12px; color: var(--muted); }
+.trade .swap { min-width: 0; font-size: 14px; }
+.trade .swap .out { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--red); }
+.trade .swap .in { font-weight: 600; }
+.trade .swap small { display: block; color: var(--muted); font-size: 12px; }
+.trade .gain { font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--good); white-space: nowrap; }
+.trade.none { grid-template-columns: 1fr; color: var(--muted); font-size: 14px; }
+.planctl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 480px) { .planctl { grid-template-columns: minmax(0, 1fr); } .trade { grid-template-columns: 70px minmax(0, 1fr); } .trade .gain { grid-column: 2; } }
+
+/* Grids (timeline + schedule) */
+.tablewrap { overflow: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.tablewrap.tall { max-height: 72vh; }
 table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; }
 th, td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
-th { position: sticky; top: 0; z-index: 2; background: var(--sunk); font-family: var(--font-display); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; }
+th { position: sticky; top: 0; z-index: 2; background: var(--sunk); font-family: var(--font-display); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+#tbl th { cursor: pointer; user-select: none; }
 th.sorted { color: var(--ink); }
 th.sorted::after { content: attr(data-dir); color: var(--red); margin-left: 3px; }
-th.nosort { cursor: default; }
+#tbl th.nosort { cursor: default; }
 td.l, th.l { text-align: left; }
 td.name { font-weight: 600; }
 td.lpp { font-weight: 700; color: var(--blue); }
+td.proj { font-weight: 700; color: var(--red); }
 td.dim { color: var(--muted); }
 tr.inteam td { background: var(--blue-soft); }
 tr.banned td { opacity: .5; }
-tbody tr:hover td { background: var(--sunk); }
-tr.inteam:hover td { background: var(--blue-soft); }
+#tbl tbody tr:hover td { background: var(--sunk); }
+#tbl tr.inteam:hover td { background: var(--blue-soft); }
 .ptag { display: inline-block; min-width: 22px; text-align: center; font-family: var(--font-display); font-weight: 700; font-size: 12px; border-radius: 4px; padding: 1px 5px; border: 1px solid var(--line); color: var(--muted); }
 .tcell { display: flex; gap: 4px; justify-content: flex-end; }
 .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--good); vertical-align: middle; margin-right: 6px; opacity: .8; }
+.grid th, .grid td { padding: 4px 3px; text-align: center; font-size: 11px; }
+.grid th { font-size: 11px; letter-spacing: .02em; line-height: 1.15; min-width: 38px; }
+.grid th.wk { border-left: 2px solid var(--line); }
+.grid td.wk { border-left: 2px solid var(--line); }
+.grid .stick { position: sticky; left: 0; z-index: 1; background: var(--surface); text-align: left; padding: 5px 10px; font-size: 13px; font-weight: 600; min-width: 150px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.grid th.stick { z-index: 3; background: var(--sunk); font-size: 11px; }
+.grid td.n { font-family: var(--font-display); font-size: 15px; font-weight: 700; padding: 4px 8px; }
+.grid td.n.hi { color: var(--good); }
+.grid td.n.lo { color: var(--red); }
+.cell { display: block; border-radius: 4px; padding: 3px 0; font-family: var(--font-display); font-weight: 600; font-size: 12px; letter-spacing: .02em; }
+.cell.h { background: var(--game); color: var(--game-ink); }
+.cell.a { background: var(--away); color: var(--away-ink); }
+.grid td.swapday { box-shadow: inset 2px 0 0 var(--red); }
+.grid tr.mine td.stick { color: var(--blue); }
+.grid tr.mine td { background: var(--blue-soft); }
+.grid tr.mine td.stick { background: var(--blue-soft); }
+.grid tr.count td { font-family: var(--font-display); font-weight: 700; font-size: 13px; background: var(--sunk); }
+.grid tr.count td.stick { background: var(--sunk); }
+.teamlink { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; text-align: left; }
+.teamlink:hover { text-decoration: underline; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend .cell { display: inline-block; width: 34px; text-align: center; margin-right: 4px; }
 .foot { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .foot a { color: var(--blue); }
 @media (prefers-reduced-motion: no-preference) { .slot { transition: border-color .2s, box-shadow .2s; } }
@@ -160,9 +212,9 @@ tr.inteam:hover td { background: var(--blue-soft); }
     <div>
       <div class="eyebrow">IS Liigapörssi · 1 MV · 2 P · 3 H</div>
       <h1>LPP Lineup <span>Lab</span></h1>
-      <p>Every Liiga player's price and season stats, plus an optimizer that finds the six-player team with the most LPP inside your budget.</p>
+      <p>Every Liiga player's price, stats and games left, an optimizer that finds the best six-player team for your budget, and a trade planner that shows when to switch players.</p>
     </div>
-    <div class="meta">Data from liigaporssi.fi<br><b id="updated"></b> · <span id="count"></span> players</div>
+    <div class="meta">Prices &amp; stats: liigaporssi.fi · <b id="updated"></b><br>Schedule: liiga.fi · <span id="count"></span> players</div>
   </header>
 
   <section class="builder" aria-label="Team builder">
@@ -171,34 +223,45 @@ tr.inteam:hover td { background: var(--blue-soft); }
         <label for="budget">Budget</label>
         <div class="money"><input id="budget" type="text" inputmode="numeric" value="2 000 000" aria-describedby="budgethint"><span>€</span></div>
         <div class="presets" id="presets"></div>
-        <p class="hint" id="budgethint">Liigapörssi's starting budget is 2 000 000 €.</p>
+        <p class="hint" id="budgethint">The starting budget is 2 000 000 €. For your own team, enter its value plus your cash.</p>
       </div>
       <div class="field">
         <span class="lbl">Optimize for</span>
         <div class="seg" id="metric" role="group" aria-label="Optimize for">
-          <button type="button" data-v="lpp" aria-pressed="true">Season LPP</button>
-          <button type="button" data-v="ppg" aria-pressed="false">LPP per game</button>
+          <button type="button" data-v="proj" aria-pressed="true">Projected</button>
+          <button type="button" data-v="lpp" aria-pressed="false">Season LPP</button>
+          <button type="button" data-v="ppg" aria-pressed="false">LPP/game</button>
         </div>
+        <p class="hint" id="metrichint"></p>
+      </div>
+      <div class="field winbox">
+        <div class="row-between"><label for="period">Period</label><span class="hint" id="perioddates"></span></div>
+        <select id="period"></select>
+        <div class="seg" id="win" role="group" aria-label="Games window">
+          <button type="button" data-v="all" aria-pressed="true">Whole period</button>
+          <button type="button" data-v="14" aria-pressed="false">Next 14 d</button>
+          <button type="button" data-v="7" aria-pressed="false">Next 7 d</button>
+        </div>
+        <p class="hint" id="winhint"></p>
       </div>
       <div class="field">
         <div class="row-between"><label for="mingp">Min. games played</label><b id="mingpv"></b></div>
-        <input id="mingp" type="range" min="0" max="20" step="1" value="0">
-        <p class="hint" id="mingphint">Filters out players with too few games to trust.</p>
+        <input id="mingp" type="range" min="0" max="20" step="1" value="5">
       </div>
       <label class="check"><input id="captain" type="checkbox" checked> Count captain bonus (×1.3)</label>
       <div class="field">
         <div class="row-between"><span class="lbl">Locked &amp; excluded</span><button class="linkbtn" id="clearpins" type="button">Clear all</button></div>
         <div class="pinned" id="pinned"></div>
-        <p class="hint">Lock a player to force them into the team, or exclude one to see the next-best option. Use the buttons on the cards or in the table.</p>
+        <p class="hint">Lock players to force them into the team, or exclude one to see the next best option. To plan trades for your real team, lock your six players.</p>
       </div>
     </div>
 
     <div class="lineup">
       <div class="totals">
-        <div class="tot"><div class="k" id="tk1">Team LPP</div><div class="v red" id="tLpp">–</div><div class="s" id="tLppS"></div></div>
+        <div class="tot"><div class="k" id="tk1">Projected LPP</div><div class="v red" id="tLpp">–</div><div class="s" id="tLppS"></div></div>
         <div class="tot"><div class="k">Team value</div><div class="v" id="tCost">–</div><div class="s" id="tCostS"></div></div>
         <div class="tot"><div class="k">Money left</div><div class="v" id="tLeft">–</div><div class="s">of your budget</div></div>
-        <div class="tot"><div class="k">LPP per 100k €</div><div class="v" id="tEff">–</div><div class="s">team efficiency</div></div>
+        <div class="tot"><div class="k">Team games</div><div class="v" id="tGames">–</div><div class="s" id="tGamesS"></div></div>
       </div>
       <div class="msg" id="msg" hidden></div>
       <div class="rink" id="rink">
@@ -210,9 +273,41 @@ tr.inteam:hover td { background: var(--blue-soft); }
     </div>
   </section>
 
-  <section style="display:flex;flex-direction:column;gap:12px" aria-label="All players">
-    <div class="tablehead">
-      <div><div class="eyebrow">Season 2026–27 totals</div><h2>All players</h2></div>
+  <section aria-label="Trade planner">
+    <div class="sechead">
+      <div><div class="eyebrow" id="planeyebrow">Trade planner</div><h2>When to switch players</h2>
+        <p class="lead">Players only score on days their team plays. The planner swaps a player whose team is about to rest for one whose team has more games coming up, and picks the best day to make each trade.</p></div>
+    </div>
+    <div class="planner">
+      <div class="panel">
+        <div class="planctl">
+          <div class="field"><div class="row-between"><label for="trades">Trades to use</label><b id="tradesv"></b></div><input id="trades" type="range" min="0" max="20" step="1" value="11"></div>
+          <div class="field"><div class="row-between"><label for="mingain">Min. gain per trade</label><b id="mingainv"></b></div><input id="mingain" type="range" min="0" max="20" step="1" value="5"></div>
+        </div>
+        <div class="totals" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <div class="tot"><div class="k">Without trades</div><div class="v" id="pBase">–</div><div class="s">projected LPP</div></div>
+          <div class="tot"><div class="k">With plan</div><div class="v grn" id="pPlan">–</div><div class="s" id="pPlanS"></div></div>
+          <div class="tot"><div class="k">Trades</div><div class="v" id="pCount">–</div><div class="s" id="pCountS"></div></div>
+        </div>
+        <p class="hint">Trades lock when the first game of a game day starts and reopen after that day's points are updated. A trade "before ti 17.11." must be made after the previous game day's points update and before the first faceoff on 17.11. Prices change daily, so check that each trade still fits your money.</p>
+      </div>
+      <div class="trades" id="tradelist"></div>
+    </div>
+    <div class="tablewrap"><table class="grid" id="timeline"></table></div>
+    <div class="legend"><span><span class="cell h">TAP</span>home game</span><span><span class="cell a">@TAP</span>away game</span><span>Red line: trade takes effect from this day</span></div>
+  </section>
+
+  <section aria-label="Schedule">
+    <div class="sechead">
+      <div><div class="eyebrow" id="scheyebrow">Schedule</div><h2>Games per team</h2>
+        <p class="lead">Teams with the most games in the selected window are at the top. Highlighted teams have a player in your lineup. Click a team to see its players in the table below.</p></div>
+    </div>
+    <div class="tablewrap"><table class="grid" id="schedule"></table></div>
+  </section>
+
+  <section aria-label="All players" id="players">
+    <div class="sechead">
+      <div><div class="eyebrow">Season totals · games &amp; projection for the selected window</div><h2>All players</h2></div>
       <div class="filters">
         <div class="field"><label for="q">Search</label><input id="q" type="search" placeholder="Player or team"></div>
         <div class="field"><span class="lbl">Position</span>
@@ -227,50 +322,99 @@ tr.inteam:hover td { background: var(--blue-soft); }
         <div class="field rangef"><div class="row-between"><label for="maxp">Max price</label><b id="maxpv"></b></div><input id="maxp" type="range" min="150000" max="450000" step="5000" value="450000"></div>
       </div>
     </div>
-    <div class="tablewrap"><table id="tbl"><thead></thead><tbody></tbody></table></div>
+    <div class="tablewrap tall"><table id="tbl"><thead></thead><tbody></tbody></table></div>
     <div class="foot"><span id="shown"></span><span>Unofficial fan tool. Prices change daily; check them on <a href="https://liigaporssi.fi/liigaporssi/pelaajahaku" target="_blank" rel="noopener">liigaporssi.fi</a> before you trade.</span></div>
   </section>
 </div>
 
 <script>
 const DATA = /*__DATA__*/[];
+const SCHED = /*__SCHED__*/[];   // [date, home, away, ended]
+const PERIODS = /*__PERIODS__*/[]; // {n, start, end}
 const META = /*__META__*/{};
 
 const POSNAME = { G: "MV", D: "P", F: "H" };
 const NEED = { G: 1, D: 2, F: 3 };
 const UNIT = 1000; // prices move in 1000 € steps
+const ABBR = { "HIFK": "IFK", "HPK": "HPK", "Ilves": "ILV", "JYP": "JYP", "Jokerit": "JOK", "Jukurit": "JUK", "K-Espoo": "KES", "KalPa": "KAL",
+  "KooKoo": "KOO", "Kärpät": "KÄR", "Lukko": "LUK", "Pelicans": "PEL", "SaiPa": "SAI", "Sport": "SPO", "TPS": "TPS", "Tappara": "TAP", "Ässät": "ÄSS" };
+const ab = t => ABBR[t] || t.slice(0, 3).toUpperCase();
 const fmt = n => Math.round(n).toLocaleString("fi-FI").replace(/ /g, " ");
 const eur = n => fmt(n) + " €";
 const k = n => (n / 1000).toLocaleString("fi-FI", { maximumFractionDigits: 1 }) + "k";
+const f1 = n => n.toLocaleString("fi-FI", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const WD = ["su", "ma", "ti", "ke", "to", "pe", "la"];
+const dt = iso => new Date(iso + "T12:00:00");
+const dayShort = iso => { const d = dt(iso); return `${WD[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`; };
+const isoAdd = (iso, n) => { const d = dt(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const TODAY = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
 const ICON = {
   lock: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="none"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>',
   ban: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l8 8M12 4l-8 8"/></svg>',
 };
 
-DATA.forEach(p => { p.ppg = p.gp ? p.lpp / p.gp : 0; p.eff = p.lpp / (p.v / 100000); });
+// Team games already played, so a player's LPP can be spread over all of their team's games.
+// This "LPP per team game" (ept) accounts for backup goalies and players who sit out games.
+const TEAM_GP = {};
+for (const [, h, a, ended] of SCHED) if (ended) { TEAM_GP[h] = (TEAM_GP[h] || 0) + 1; TEAM_GP[a] = (TEAM_GP[a] || 0) + 1; }
+DATA.forEach(p => {
+  p.ppg = p.gp ? p.lpp / p.gp : 0;
+  p.ept = p.ppg * Math.min(1, p.gp / (TEAM_GP[p.t] || p.gp || 1));
+  p.eff = p.lpp / (p.v / 100000);
+});
 const BYID = new Map(DATA.map(p => [p.id, p]));
+const TEAMS = [...new Set(DATA.map(p => p.t))].sort((a, b) => a.localeCompare(b, "fi"));
 
 // ---------- state ----------
 const store = {
   get(key, d) { try { const v = localStorage.getItem("lpplab:" + key); return v == null ? d : JSON.parse(v); } catch { return d; } },
   set(key, v) { try { localStorage.setItem("lpplab:" + key, JSON.stringify(v)); } catch {} },
 };
+const defaultPeriod = (PERIODS.find(p => p.end >= TODAY) || PERIODS[PERIODS.length - 1] || { n: 0 }).n;
 const S = {
   budget: store.get("budget", 2000000),
-  metric: store.get("metric", "lpp"),
-  minGp: store.get("minGp", 0),
+  metric: store.get("metric2", "proj"),
+  minGp: store.get("minGp2", 5),
   captain: store.get("captain", true),
+  win: store.get("win", "all"),
+  trades: store.get("trades", 11),
+  minGain: store.get("minGain", 5),
+  period: defaultPeriod,
   locks: new Set(store.get("locks", []).filter(id => BYID.has(id))),
   bans: new Set(store.get("bans", []).filter(id => BYID.has(id))),
-  q: "", pos: "all", team: "all", maxP: 450000, sort: "lpp", dir: -1,
+  q: "", pos: "all", team: "all", maxP: 450000, sort: "proj", dir: -1,
 };
-let TEAM = { ids: new Set(), captain: null };
+let TEAM = { ids: new Set(), captain: null, list: [] };
 const save = () => {
-  store.set("budget", S.budget); store.set("metric", S.metric); store.set("minGp", S.minGp);
-  store.set("captain", S.captain); store.set("locks", [...S.locks]); store.set("bans", [...S.bans]);
+  store.set("budget", S.budget); store.set("metric2", S.metric); store.set("minGp2", S.minGp); store.set("captain", S.captain);
+  store.set("win", S.win); store.set("trades", S.trades); store.set("minGain", S.minGain);
+  store.set("locks", [...S.locks]); store.set("bans", [...S.bans]);
 };
-const score = p => S.metric === "ppg" ? p.ppg : p.lpp;
+
+// ---------- games window ----------
+let WIN, PWIN; // WIN: selected window (optimizer, table); PWIN: rest of the period (trade planner)
+function buildWindow() { WIN = makeWindow(S.win); PWIN = S.win === "all" ? WIN : makeWindow("all"); }
+function makeWindow(win) {
+  const per = PERIODS.find(p => p.n === S.period);
+  let start = per ? (per.start > TODAY ? per.start : TODAY) : TODAY;
+  let end = per ? per.end : TODAY;
+  if (win !== "all") end = [end, isoAdd(start, +win - 1)].sort()[0];
+  const games = SCHED.filter(g => !g[3] && g[0] >= start && g[0] <= end);
+  const days = [...new Set(games.map(g => g[0]))].sort();
+  const di = new Map(days.map((d, i) => [d, i]));
+  const by = {}; const cnt = {}; const pre = {};
+  for (const t of TEAMS) { by[t] = new Array(days.length).fill(null); cnt[t] = 0; }
+  for (const [d, h, a] of games) {
+    if (by[h]) { by[h][di.get(d)] = { opp: a, home: true }; cnt[h]++; }
+    if (by[a]) { by[a][di.get(d)] = { opp: h, home: false }; cnt[a]++; }
+  }
+  for (const t of TEAMS) { const P = [0]; by[t].forEach(x => P.push(P[P.length - 1] + (x ? 1 : 0))); pre[t] = P; }
+  return { per, start, end, days, by, cnt, pre };
+}
+const games = p => WIN.cnt[p.t] || 0;
+const proj = p => p.ept * games(p);
+const score = p => S.metric === "ppg" ? p.ppg : S.metric === "proj" ? proj(p) : p.lpp;
 
 // ---------- optimizer ----------
 // Exact search: 0/1 knapsack over (goalies, defenders, forwards) counts x budget in 1000 € units.
@@ -288,34 +432,30 @@ function optimize() {
   const B = Math.floor((S.budget - lockCost) / UNIT);
   if (B < 0) return { error: `Your locked players cost ${eur(lockCost)}, which is more than the budget.` };
 
-  // candidate pool
   let pool = DATA.filter(p => !S.locks.has(p.id) && !S.bans.has(p.id) && need[p.p] > 0 && p.gp >= S.minGp && p.v / UNIT <= B);
   // drop players dominated by at least `need` cheaper-or-equal, better-or-equal players at the same position
   pool = ["G", "D", "F"].flatMap(pos => {
     const arr = pool.filter(p => p.p === pos).sort((a, b) => a.v - b.v || score(b) - score(a));
     const kept = []; const best = [];
     for (const p of arr) {
-      const dominated = best.length >= need[pos] && best[need[pos] - 1] >= score(p);
-      if (!dominated) kept.push(p);
+      if (!(best.length >= need[pos] && best[need[pos] - 1] >= score(p))) kept.push(p);
       best.push(score(p)); best.sort((a, b) => b - a); best.length = Math.min(best.length, need[pos]);
     }
     return kept;
   });
   pool.sort((a, b) => score(a) - score(b));
 
-  const dG = need.G + 1, dD = need.D + 1, dF = need.F + 1, NS = dG * dD * dF, W = B + 1;
-  const idx = (g, d, f) => (g * dD + d) * dF + f;
+  const dD = need.D + 1, dF = need.F + 1, NS = (need.G + 1) * dD * dF, W = B + 1;
   const step = { G: dD * dF, D: dF, F: 1 };
-  const target = idx(need.G, need.D, need.F);
+  const target = (need.G * dD + need.D) * dF + need.F;
   const dp = new Float64Array(NS * W).fill(-Infinity);
-  for (let b = 0; b < W; b++) dp[b] = 0; // state 0 = nobody picked, cost <= b
+  for (let b = 0; b < W; b++) dp[b] = 0;
   const take = new Uint8Array(pool.length * NS * W);
   const cnt = s => ({ G: Math.floor(s / (dD * dF)), D: Math.floor(s / dF) % dD, F: s % dF });
   const kLayer = pool.filter(p => score(p) <= lockMax).length;
   let best = { val: -Infinity };
 
   for (let i = 0; i <= pool.length; i++) {
-    // case: captain is a locked player (all remaining picks score <= lockMax)
     if (locked.length && i === kLayer) {
       const v = dp[target * W + B];
       if (v > -Infinity) {
@@ -325,16 +465,13 @@ function optimize() {
     }
     if (i === pool.length) break;
     const p = pool[i], w = p.v / UNIT, sc = score(p), st = step[p.p];
-    // case: p is the last (highest-scoring) pick and captain
     if (sc >= lockMax && B - w >= 0) {
-      const s0 = target - st;
-      const v = dp[s0 * W + B - w];
+      const v = dp[(target - st) * W + B - w];
       if (v > -Infinity) {
         const tot = v + sc * mult + lockSum;
-        if (tot > best.val) best = { val: tot, layer: i, s: s0, b: B - w, cap: p };
+        if (tot > best.val) best = { val: tot, layer: i, s: target - st, b: B - w, cap: p };
       }
     }
-    // knapsack update (in place, budget descending)
     const base = i * NS * W;
     for (let s = NS - 1; s >= 0; s--) {
       if (cnt(s)[p.p] === 0) continue;
@@ -352,7 +489,6 @@ function optimize() {
     }, lockCost);
     return { error: `No team fits this budget. The cheapest possible lineup with these settings costs ${eur(cheapest)}.` };
   }
-  // reconstruct
   const picks = best.cap ? [best.cap] : [];
   let s = best.s, b = best.b;
   for (let j = best.layer - 1; j >= 0 && s > 0; j--) {
@@ -363,16 +499,67 @@ function optimize() {
   return { team, captain, total: best.val };
 }
 
+// ---------- trade planner ----------
+// Greedy: repeatedly make the single swap (slot, day, new player) with the biggest projected gain,
+// where a swap replaces a player from game day d until that slot's next change. Money is checked
+// for every day the new player is held, using today's prices.
+function planTrades(team, W) {
+  const T = W.days.length;
+  const order = { G: 0, D: 1, F: 2 };
+  const slots = [...team].sort((a, b) => order[a.p] - order[b.p] || b.ept - a.ept).map(p => ({ pos: p.p, segs: [{ p, from: 0 }] }));
+  const val = (p, a, b) => p.ept * (W.pre[p.t][b] - W.pre[p.t][a]);
+  const base = team.reduce((s, p) => s + val(p, 0, T), 0);
+  const cost = new Array(T).fill(team.reduce((s, p) => s + p.v, 0));
+  const used = new Set(team.map(p => p.id));
+  const pool = { G: [], D: [], F: [] };
+  DATA.forEach(p => { if (!S.bans.has(p.id) && p.gp >= S.minGp && p.ept > 0) pool[p.p].push(p); });
+  let gainSum = 0;
+  if (T < 2) return { slots, trades: [], base, total: base, T };
+  for (let n = 0; n < S.trades; n++) {
+    let best = null;
+    slots.forEach((slot, si) => {
+      slot.segs.forEach((seg, j) => {
+        const e = j + 1 < slot.segs.length ? slot.segs[j + 1].from : T;
+        const o = seg.p;
+        let runMax = -Infinity;
+        for (let d = e - 1; d > seg.from; d--) {
+          runMax = Math.max(runMax, cost[d]);
+          const avail = S.budget - (runMax - o.v);
+          const oVal = val(o, d, e);
+          for (const q of pool[slot.pos]) {
+            if (used.has(q.id) || q.v > avail) continue;
+            const g = val(q, d, e) - oVal;
+            if (!best || g > best.gain) best = { gain: g, si, j, d, e, o, q };
+          }
+        }
+      });
+    });
+    if (!best || best.gain < Math.max(S.minGain, 0.01)) break;
+    const slot = slots[best.si];
+    slot.segs.splice(best.j + 1, 0, { p: best.q, from: best.d });
+    for (let i = best.d; i < best.e; i++) cost[i] += best.q.v - best.o.v;
+    used.add(best.q.id);
+    gainSum += best.gain;
+  }
+  // list trades from the final timeline, so "out" is whoever actually holds the slot before the change
+  const G = (p, a, b) => W.pre[p.t][b] - W.pre[p.t][a];
+  const trades = slots.flatMap(slot => slot.segs.slice(1).map((seg, j) => {
+    const prev = slot.segs[j], end = j + 2 < slot.segs.length ? slot.segs[j + 2].from : T;
+    return { day: seg.from, out: prev.p, in: seg.p, until: end, gain: val(seg.p, seg.from, end) - val(prev.p, seg.from, end), outG: G(prev.p, seg.from, end), inG: G(seg.p, seg.from, end) };
+  })).sort((a, b) => a.day - b.day);
+  return { slots, trades, base, total: base + gainSum, T, maxCost: Math.max(...cost) };
+}
+
 // ---------- rendering: lineup ----------
 function slotHTML(p, posLabel) {
   if (!p) return `<div class="slot"><div class="top"><span class="pos">${posLabel}</span></div><div class="nm" style="color:var(--muted)">Empty</div></div>`;
   const cap = TEAM.captain && TEAM.captain.id === p.id && S.captain;
   const lk = S.locks.has(p.id);
-  const val = S.metric === "ppg" ? p.ppg.toFixed(2) + " /GP" : p.lpp + " LPP";
+  const val = S.metric === "ppg" ? p.ppg.toFixed(2) + " /GP" : S.metric === "proj" ? f1(proj(p)) + " proj" : p.lpp + " LPP";
   return `<div class="slot${cap ? " cap" : ""}${lk ? " locked" : ""}">
     <div class="top"><span class="pos">${posLabel}</span>${cap ? '<span class="badge" title="Captain: points ×1.3">C</span>' : ""}</div>
     <div class="nm">${esc(p.n)}</div>
-    <div class="tm">${esc(p.t)} · ${p.gp} GP</div>
+    <div class="tm">${esc(p.t)} · ${games(p)} games left · ${p.lpp} LPP</div>
     <div class="nums"><span class="l">${val}</span><span>${k(p.v)}</span></div>
     <div class="acts">
       <button class="iconbtn lock${lk ? " on" : ""}" data-act="lock" data-id="${p.id}" title="${lk ? "Unlock" : "Lock into team"}" aria-label="${lk ? "Unlock" : "Lock"} ${esc(p.n)}">${ICON.lock}</button>
@@ -381,50 +568,129 @@ function slotHTML(p, posLabel) {
   </div>`;
 }
 
+const $ = id => document.getElementById(id);
 function renderLineup() {
   const r = optimize();
-  const msg = document.getElementById("msg");
+  const msg = $("msg");
   if (r.error) {
-    msg.textContent = r.error; msg.hidden = false; TEAM = { ids: new Set(), captain: null };
-    ["F", "D", "G"].forEach(pos => document.getElementById("line" + pos).innerHTML = Array.from({ length: NEED[pos] }, () => slotHTML(null, POSNAME[pos])).join(""));
-    ["tLpp", "tCost", "tLeft", "tEff"].forEach(id => document.getElementById(id).textContent = "–");
-    document.getElementById("tLppS").textContent = ""; document.getElementById("tCostS").textContent = "";
+    msg.textContent = r.error; msg.hidden = false; TEAM = { ids: new Set(), captain: null, list: [] };
+    ["F", "D", "G"].forEach(pos => $("line" + pos).innerHTML = Array.from({ length: NEED[pos] }, () => slotHTML(null, POSNAME[pos])).join(""));
+    ["tLpp", "tCost", "tLeft", "tGames"].forEach(id => $(id).textContent = "–");
+    ["tLppS", "tCostS", "tGamesS"].forEach(id => $(id).textContent = "");
     return;
   }
   msg.hidden = true;
-  TEAM = { ids: new Set(r.team.map(p => p.id)), captain: r.captain };
+  TEAM = { ids: new Set(r.team.map(p => p.id)), captain: r.captain, list: r.team };
   for (const pos of ["F", "D", "G"]) {
     const ps = r.team.filter(p => p.p === pos).sort((a, b) => score(b) - score(a));
-    document.getElementById("line" + pos).innerHTML = ps.map(p => slotHTML(p, POSNAME[pos])).join("");
+    $("line" + pos).innerHTML = ps.map(p => slotHTML(p, POSNAME[pos])).join("");
   }
   const cost = r.team.reduce((s, p) => s + p.v, 0);
   const rawLpp = r.team.reduce((s, p) => s + p.lpp, 0);
-  const capBonus = S.captain ? Math.ceil(r.captain.lpp * 1.3) - r.captain.lpp : 0;
-  if (S.metric === "ppg") {
-    const ppg = r.team.reduce((s, p) => s + p.ppg, 0) + (S.captain ? r.captain.ppg * 0.3 : 0);
-    document.getElementById("tk1").textContent = "LPP per round";
-    document.getElementById("tLpp").textContent = ppg.toFixed(1);
-    document.getElementById("tLppS").textContent = `expected if all six play · season ${fmt(rawLpp + capBonus)}`;
+  const cap = r.captain;
+  if (S.metric === "proj") {
+    const pj = r.team.reduce((s, p) => s + proj(p), 0) + (S.captain ? proj(cap) * 0.3 : 0);
+    $("tk1").textContent = "Projected LPP";
+    $("tLpp").textContent = fmt(pj);
+    $("tLppS").textContent = WIN.days.length ? `${dayShort(WIN.days[0])}–${dayShort(WIN.days[WIN.days.length - 1])}${S.captain ? " · incl. captain" : ""}` : "no games left";
+  } else if (S.metric === "ppg") {
+    const ppg = r.team.reduce((s, p) => s + p.ppg, 0) + (S.captain ? cap.ppg * 0.3 : 0);
+    $("tk1").textContent = "LPP per round";
+    $("tLpp").textContent = f1(ppg);
+    $("tLppS").textContent = "if all six play";
   } else {
-    document.getElementById("tk1").textContent = "Team LPP";
-    document.getElementById("tLpp").textContent = fmt(rawLpp + capBonus);
-    document.getElementById("tLppS").textContent = S.captain ? `incl. captain bonus +${capBonus}` : "season total";
+    const bonus = S.captain ? Math.ceil(cap.lpp * 1.3) - cap.lpp : 0;
+    $("tk1").textContent = "Season LPP";
+    $("tLpp").textContent = fmt(rawLpp + bonus);
+    $("tLppS").textContent = S.captain ? `incl. captain bonus +${bonus}` : "season total";
   }
-  document.getElementById("tCost").textContent = k(cost);
-  document.getElementById("tCostS").textContent = eur(cost);
-  const left = S.budget - cost;
-  document.getElementById("tLeft").textContent = k(left);
-  document.getElementById("tEff").textContent = (rawLpp / (cost / 100000)).toFixed(1);
+  $("tCost").textContent = k(cost);
+  $("tCostS").textContent = eur(cost);
+  $("tLeft").textContent = k(S.budget - cost);
+  const g = r.team.reduce((s, p) => s + games(p), 0);
+  $("tGames").textContent = g;
+  $("tGamesS").textContent = `player-games in ${WIN.days.length} game days`;
 }
 
 function renderPinned() {
-  const el = document.getElementById("pinned");
+  const el = $("pinned");
   const items = [...S.locks].map(id => [id, "lock"]).concat([...S.bans].map(id => [id, "ban"]));
   if (!items.length) { el.innerHTML = '<span class="hint">None yet.</span>'; return; }
   el.innerHTML = items.map(([id, t]) => {
     const p = BYID.get(id);
     return `<button type="button" class="chip${t === "ban" ? " x" : ""}" data-act="${t}" data-id="${id}" title="Remove">${t === "lock" ? ICON.lock.replace("<svg", '<svg width="12" height="12"') : ""}${esc(p.n)} <span aria-hidden="true">×</span></button>`;
   }).join("");
+}
+
+// ---------- rendering: planner ----------
+const weekStart = (days, i) => i > 0 && (dt(days[i]).getDay() === 1 || (dt(days[i]) - dt(days[i - 1])) / 864e5 >= (dt(days[i]).getDay() || 7));
+function gameCell(x) { return x ? `<span class="cell ${x.home ? "h" : "a"}">${x.home ? "" : "@"}${ab(x.opp)}</span>` : ""; }
+
+function renderPlanner() {
+  const days = PWIN.days;
+  $("planeyebrow").textContent = PWIN.per && days.length ? `Trade planner · jakso ${PWIN.per.n} · rest of period, ${dayShort(days[0])}–${dayShort(days[days.length - 1])}` : "Trade planner";
+  $("tradesv").textContent = S.trades; $("mingainv").textContent = S.minGain + " LPP";
+  if (!TEAM.list.length || days.length === 0) {
+    $("tradelist").innerHTML = `<div class="trade none">${days.length ? "Build a team above to plan trades." : "No games left in this window."}</div>`;
+    $("timeline").innerHTML = ""; ["pBase", "pPlan", "pCount"].forEach(id => $(id).textContent = "–"); $("pPlanS").textContent = ""; $("pCountS").textContent = "";
+    return;
+  }
+  const plan = planTrades(TEAM.list, PWIN);
+  $("pBase").textContent = fmt(plan.base);
+  $("pPlan").textContent = fmt(plan.total);
+  $("pPlanS").textContent = plan.trades.length ? `+${fmt(plan.total - plan.base)} LPP` : "no trade is worth it";
+  $("pCount").textContent = plan.trades.length;
+  $("pCountS").textContent = `of ${S.trades} allowed · excl. captain`;
+  $("tradelist").innerHTML = plan.trades.length ? plan.trades.map(t => {
+    const before = days[t.day - 1], on = days[t.day];
+    const untilTxt = t.until < days.length ? ` until ${dayShort(days[t.until - 1])}` : "";
+    return `<div class="trade">
+      <div class="when"><span>before</span><b>${dayShort(on)}</b><span>after ${dayShort(before)}</span></div>
+      <div class="swap"><span class="out">${esc(t.out.n)}</span> → <span class="in">${esc(t.in.n)}</span>
+        <small>${POSNAME[t.in.p]} · ${esc(t.out.t)} ${t.outG} games → ${esc(t.in.t)} ${t.inG} games${untilTxt} · ${k(t.out.v)} → ${k(t.in.v)}</small></div>
+      <div class="gain">+${f1(t.gain)}</div>
+    </div>`;
+  }).join("") : `<div class="trade none">No single trade gains at least ${S.minGain} LPP in this window. Lower the minimum gain or choose a longer window to see more options.</div>`;
+
+  // timeline: one row per slot, one column per game day
+  const tradeDays = new Set(plan.trades.map(t => t.day));
+  let html = `<thead><tr><th class="stick">Your lineup</th><th>Gms</th>${days.map((d, i) => { const [w, dm] = dayShort(d).split(" "); return `<th class="${weekStart(days, i) ? "wk" : ""}">${w}<br>${dm}</th>`; }).join("")}</tr></thead><tbody>`;
+  const playing = new Array(days.length).fill(0);
+  for (const slot of plan.slots) {
+    const names = slot.segs.map(s => esc(s.p.n.split(" ")[0])).join(" → ");
+    let g = 0;
+    const cells = days.map((d, i) => {
+      const seg = [...slot.segs].reverse().find(s => s.from <= i);
+      const x = PWIN.by[seg.p.t][i];
+      if (x) { g++; playing[i]++; }
+      const swap = slot.segs.some(s => s.from === i && i > 0);
+      return `<td class="${weekStart(days, i) ? "wk " : ""}${swap ? "swapday" : ""}" title="${esc(seg.p.n)} (${esc(seg.p.t)})">${gameCell(x)}</td>`;
+    }).join("");
+    html += `<tr><td class="stick" title="${esc(slot.segs.map(s => s.p.n).join(" → "))}"><span class="ptag">${POSNAME[slot.pos]}</span> ${names}</td><td class="n">${g}</td>${cells}</tr>`;
+  }
+  html += `<tr class="count"><td class="stick">Players playing</td><td class="n">${playing.reduce((a, b) => a + b, 0)}</td>${playing.map((n, i) => `<td class="${weekStart(days, i) ? "wk" : ""}">${n || ""}</td>`).join("")}</tr></tbody>`;
+  $("timeline").innerHTML = html;
+}
+
+// ---------- rendering: schedule ----------
+function renderSchedule() {
+  const days = WIN.days;
+  $("scheyebrow").textContent = WIN.per ? `Schedule · jakso ${WIN.per.n}${days.length ? ` · ${dayShort(days[0])}–${dayShort(days[days.length - 1])}` : ""}` : "Schedule";
+  if (!days.length) { $("schedule").innerHTML = `<tbody><tr><td class="stick">No games left in this window.</td></tr></tbody>`; return; }
+  const myTeams = new Set(TEAM.list.map(p => p.t));
+  const counts = TEAMS.map(t => WIN.cnt[t]);
+  const hi = Math.max(...counts), lo = Math.min(...counts);
+  const rest = t => { let best = 0, run = 0; WIN.by[t].forEach(x => { run = x ? 0 : run + 1; best = Math.max(best, run); }); return best; };
+  const next7 = t => { const lim = isoAdd(days[0], 6); return WIN.by[t].filter((x, i) => x && days[i] <= lim).length; };
+  const rows = [...TEAMS].sort((a, b) => WIN.cnt[b] - WIN.cnt[a] || next7(b) - next7(a) || a.localeCompare(b, "fi"));
+  let html = `<thead><tr><th class="stick">Team</th><th title="Games in window">Gms</th><th title="Games in the first 7 days of the window">7 d</th><th title="Longest run of game days without a game">Rest</th>${days.map((d, i) => { const [w, dm] = dayShort(d).split(" "); return `<th class="${weekStart(days, i) ? "wk" : ""}">${w}<br>${dm}</th>`; }).join("")}</tr></thead><tbody>`;
+  for (const t of rows) {
+    const c = WIN.cnt[t];
+    html += `<tr class="${myTeams.has(t) ? "mine" : ""}"><td class="stick"><button class="teamlink" data-team="${esc(t)}">${esc(t)}</button></td>
+      <td class="n${c === hi && hi !== lo ? " hi" : c === lo && hi !== lo ? " lo" : ""}">${c}</td><td class="n">${next7(t)}</td><td class="n" title="game days">${rest(t)}</td>
+      ${WIN.by[t].map((x, i) => `<td class="${weekStart(days, i) ? "wk" : ""}">${gameCell(x)}</td>`).join("")}</tr>`;
+  }
+  $("schedule").innerHTML = html + "</tbody>";
 }
 
 // ---------- rendering: table ----------
@@ -439,25 +705,27 @@ const COLS = {
   S: [{ k: "g", h: "G", t: "Goals" }, { k: "a", h: "A", t: "Assists" }, { k: "pts", h: "P", t: "Points" }, { k: "pl", h: "+", t: "Plus" }, { k: "mi", h: "−", t: "Minus" },
       { k: "pim", h: "PIM", t: "Penalty minutes" }, { k: "sh", h: "Shots", t: "Shots" }, { k: "bl", h: "Blk", t: "Blocked shots" }],
   tail: [
-    { k: "ppg", h: "LPP/GP", t: "Liigapörssi points per game", f: p => p.ppg.toFixed(2) },
+    { k: "ppg", h: "LPP/GP", t: "Liigapörssi points per game played", f: p => p.ppg.toFixed(2) },
     { k: "lpp", h: "LPP", cls: "lpp", t: "Liigapörssi points, season" },
     { k: "v", h: "Price", t: "Current price", f: p => eur(p.v) },
-    { k: "eff", h: "LPP/100k", t: "LPP per 100 000 € of price", f: p => p.eff.toFixed(1) },
+    { k: "eff", h: "LPP/100k", t: "Season LPP per 100 000 € of price", f: p => p.eff.toFixed(1) },
+    { k: "gms", h: "Gms", t: "Team games in the selected window", f: p => games(p) },
+    { k: "proj", h: "Proj.", cls: "proj", t: "Projected LPP in the window: LPP per team game × team games", f: p => f1(proj(p)) },
     { k: "_", h: "", nosort: true, f: p => `<div class="tcell">
       <button class="iconbtn lock${S.locks.has(p.id) ? " on" : ""}" data-act="lock" data-id="${p.id}" title="${S.locks.has(p.id) ? "Unlock" : "Lock into team"}" aria-label="Lock ${esc(p.n)}">${ICON.lock}</button>
       <button class="iconbtn ban${S.bans.has(p.id) ? " on" : ""}" data-act="ban" data-id="${p.id}" title="${S.bans.has(p.id) ? "Allow again" : "Exclude from optimizer"}" aria-label="Exclude ${esc(p.n)}">${ICON.ban}</button></div>` },
   ],
 };
 const cols = () => [...COLS.base, ...(S.pos === "all" ? COLS.all : S.pos === "G" ? COLS.G : COLS.S), ...COLS.tail];
-const sortVal = (p, key) => key === "svp" ? (p.sv + p.ga ? p.sv / (p.sv + p.ga) : 0) : p[key];
+const sortVal = (p, key) => key === "svp" ? (p.sv + p.ga ? p.sv / (p.sv + p.ga) : 0) : key === "gms" ? games(p) : key === "proj" ? proj(p) : p[key];
 
 function renderTable() {
   const cs = cols();
-  if (!cs.some(c => c.k === S.sort)) S.sort = "lpp";
+  if (!cs.some(c => c.k === S.sort)) S.sort = "proj";
   document.querySelector("#tbl thead").innerHTML = "<tr>" + cs.map(c =>
-    `<th class="${c.cls ? c.cls.replace("name", "").replace("lpp", "") : ""}${c.nosort ? " nosort" : ""}${S.sort === c.k ? " sorted" : ""}" data-k="${c.k}" ${c.t ? `title="${c.t}"` : ""} data-dir="${S.dir < 0 ? "▼" : "▲"}">${c.h}</th>`).join("") + "</tr>";
+    `<th class="${c.cls && c.cls.includes("l") && !c.cls.includes("lpp") ? "l" : ""}${c.nosort ? " nosort" : ""}${S.sort === c.k ? " sorted" : ""}" data-k="${c.k}" ${c.t ? `title="${c.t}"` : ""} data-dir="${S.dir < 0 ? "▼" : "▲"}">${c.h}</th>`).join("") + "</tr>";
   const q = S.q.trim().toLowerCase();
-  let rows = DATA.filter(p => (S.pos === "all" || p.p === S.pos) && (S.team === "all" || p.t === S.team) && p.v <= S.maxP &&
+  const rows = DATA.filter(p => (S.pos === "all" || p.p === S.pos) && (S.team === "all" || p.t === S.team) && p.v <= S.maxP &&
     (!q || p.n.toLowerCase().includes(q) || p.t.toLowerCase().includes(q)));
   rows.sort((a, b) => {
     const x = sortVal(a, S.sort), y = sortVal(b, S.sort);
@@ -467,30 +735,43 @@ function renderTable() {
   document.querySelector("#tbl tbody").innerHTML = rows.map(p => `<tr class="${TEAM.ids.has(p.id) ? "inteam" : ""}${S.bans.has(p.id) ? " banned" : ""}">` + cs.map(c => {
     let v = c.f ? c.f(p) : esc(p[c.k]);
     if (c.k === "eff") v = `<span class="bar" style="width:${Math.max(2, p.eff / maxEff * 36)}px"></span>${v}`;
-    if (c.k === "n" && TEAM.ids.has(p.id)) v += TEAM.captain && TEAM.captain.id === p.id && S.captain ? ' <span class="badge">C</span>' : "";
+    if (c.k === "n" && TEAM.ids.has(p.id) && TEAM.captain && TEAM.captain.id === p.id && S.captain) v += ' <span class="badge">C</span>';
     return `<td class="${c.cls || ""}${c.k === "gp" && p.gp === 0 ? " dim" : ""}">${v}</td>`;
   }).join("") + "</tr>").join("");
-  document.getElementById("shown").textContent = `Showing ${rows.length} of ${DATA.length} players. Highlighted rows are in the optimized team.`;
+  $("shown").textContent = `Showing ${rows.length} of ${DATA.length} players. Highlighted rows are in the optimized team.`;
 }
 
-function renderAll() { save(); renderLineup(); renderPinned(); renderTable(); }
+function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSchedule(); renderTable(); }
 
 // ---------- controls ----------
-const $ = id => document.getElementById(id);
-$("updated").textContent = META.updated ? new Date(META.updated).toLocaleDateString("fi-FI") : "";
+$("updated").textContent = META.updated ? dt(META.updated).toLocaleDateString("fi-FI") : "";
 $("count").textContent = DATA.length;
-[...new Set(DATA.map(p => p.t))].sort((a, b) => a.localeCompare(b, "fi")).forEach(t => $("teamf").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`));
+TEAMS.forEach(t => $("teamf").insertAdjacentHTML("beforeend", `<option>${esc(t)}</option>`));
 $("presets").innerHTML = [1500000, 1800000, 2000000, 2200000, 2500000].map(v => `<button type="button" class="chip" data-v="${v}">${(v / 1e6).toLocaleString("fi-FI")} M</button>`).join("");
+$("period").innerHTML = PERIODS.map(p => `<option value="${p.n}"${p.end < TODAY ? " disabled" : ""}>Jakso ${p.n}${p.end < TODAY ? " (played)" : ""}</option>`).join("");
 
-const syncControls = () => {
+function syncHints() {
+  const per = WIN.per;
+  $("perioddates").textContent = per ? `${dayShort(per.start)}–${dayShort(per.end)}` : "";
+  const started = per && per.start <= TODAY;
+  $("winhint").textContent = !WIN.days.length ? "No games left in this window."
+    : `${WIN.days.length} game days, ${dayShort(WIN.days[0])}–${dayShort(WIN.days[WIN.days.length - 1])}.` + (per && !started ? ` The period hasn't started, so changes before ${dayShort(per.start)} are free.` : "");
+  $("metrichint").textContent = S.metric === "proj" ? "Projected = LPP per team game × games in the window. This favours teams that play more."
+    : S.metric === "ppg" ? "Average LPP per game the player has played." : "Total LPP so far this season.";
+}
+function syncControls() {
   $("budget").value = fmt(S.budget);
   [...$("presets").children].forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === S.budget)));
   [...$("metric").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.metric)));
+  [...$("win").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.win)));
   [...$("posf").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === S.pos)));
+  $("period").value = S.period;
   $("mingp").value = S.minGp; $("mingpv").textContent = S.minGp;
   $("captain").checked = S.captain;
+  $("trades").value = S.trades; $("mingain").value = S.minGain;
   $("maxpv").textContent = k(S.maxP);
-};
+  $("teamf").value = S.team;
+}
 let budgetTimer;
 $("budget").addEventListener("input", e => {
   const v = parseInt(e.target.value.replace(/\D/g, ""), 10);
@@ -500,18 +781,23 @@ $("budget").addEventListener("input", e => {
 });
 $("budget").addEventListener("blur", () => { $("budget").value = fmt(S.budget); });
 $("presets").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.budget = +b.dataset.v; syncControls(); renderAll(); });
-$("metric").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return; S.metric = b.dataset.v;
-  if (S.metric === "ppg" && S.minGp < 5) S.minGp = 5;
-  syncControls(); renderAll();
-});
+$("metric").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.metric = b.dataset.v; syncControls(); renderAll(); });
+$("win").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.win = b.dataset.v; syncControls(); renderAll(); });
+$("period").addEventListener("change", e => { S.period = +e.target.value; renderAll(); });
 $("mingp").addEventListener("input", e => { S.minGp = +e.target.value; $("mingpv").textContent = S.minGp; renderAll(); });
 $("captain").addEventListener("change", e => { S.captain = e.target.checked; renderAll(); });
+$("trades").addEventListener("input", e => { S.trades = +e.target.value; save(); renderPlanner(); });
+$("mingain").addEventListener("input", e => { S.minGain = +e.target.value; save(); renderPlanner(); });
 $("clearpins").addEventListener("click", () => { S.locks.clear(); S.bans.clear(); renderAll(); });
 $("q").addEventListener("input", e => { S.q = e.target.value; renderTable(); });
 $("teamf").addEventListener("change", e => { S.team = e.target.value; renderTable(); });
 $("maxp").addEventListener("input", e => { S.maxP = +e.target.value; $("maxpv").textContent = k(S.maxP); renderTable(); });
 $("posf").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; S.pos = b.dataset.v; syncControls(); renderTable(); });
+$("schedule").addEventListener("click", e => {
+  const b = e.target.closest(".teamlink"); if (!b) return;
+  S.team = b.dataset.team; S.pos = "all"; syncControls(); renderTable();
+  $("players").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+});
 document.querySelector("#tbl thead").addEventListener("click", e => {
   const th = e.target.closest("th"); if (!th || th.classList.contains("nosort")) return;
   const key = th.dataset.k;

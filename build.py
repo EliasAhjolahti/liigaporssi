@@ -1,7 +1,11 @@
-"""Fetch current Liigapörssi player data and build index.html from template.html.
+"""Fetch current Liigapörssi player data, the Liiga schedule and period dates, and build
+index.html from template.html.
 
 Usage:  python build.py
-Data source: the player-search feed behind https://liigaporssi.fi/liigaporssi/pelaajahaku
+Data sources:
+  players  - the player-search feed behind https://liigaporssi.fi/liigaporssi/pelaajahaku
+  schedule - the official Liiga API, https://liiga.fi/api/v2/games
+  periods  - the rules page, https://liigaporssi.fi/ohjeet
 """
 import datetime
 import html
@@ -67,16 +71,58 @@ def parse(src: str) -> list[dict]:
     return players
 
 
+def get(url: str) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return r.read().decode("utf-8")
+
+
+def fetch_schedule(season: int) -> list[list]:
+    """Regular-season games from the official Liiga API as [date, home, away, ended]."""
+    games = json.loads(get(f"https://liiga.fi/api/v2/games?tournament=runkosarja&season={season}"))
+    rows = []
+    for g in games:
+        start = datetime.datetime.fromisoformat(g["start"].replace("Z", "+00:00"))
+        local = (start + datetime.timedelta(hours=3)).date().isoformat()  # Finnish game day
+        rows.append([local, g["homeTeam"]["teamName"], g["awayTeam"]["teamName"], 1 if g.get("ended") else 0])
+    rows.sort()
+    return rows
+
+
+def fetch_periods() -> list[dict]:
+    """Liigapörssi periods (jaksot) from the rules page."""
+    src = re.sub(r"<[^>]+>", " ", get("https://liigaporssi.fi/ohjeet"))
+    periods = []
+    for m in re.finditer(r"Jakso\s*-\s*(\d\d)\.(\d\d)\.(\d{4})\s*-\s*(\d\d)\.(\d\d)\.(\d{4})", src):
+        d1, m1, y1, d2, m2, y2 = map(int, m.groups())
+        end = datetime.date(y2, m2, d2)
+        start = datetime.date(y1, m1, d1)
+        if (end - start).days > 150:  # typo on the rules page (e.g. 2025 instead of 2026)
+            start = start.replace(year=end.year if m1 <= m2 else end.year - 1)
+        periods.append({"n": len(periods) + 1, "start": start.isoformat(), "end": end.isoformat()})
+    return periods
+
+
 def main():
     players = parse(fetch())
     if len(players) < 100:
         raise SystemExit(f"Only {len(players)} players parsed; the source format may have changed.")
-    meta = {"updated": datetime.date.today().isoformat(), "count": len(players)}
-    data = json.dumps(players, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
+    today = datetime.date.today()
+    season = today.year + 1 if today.month >= 7 else today.year  # Liiga season is named by its end year
+    schedule = fetch_schedule(season)
+    periods = fetch_periods()
+    if not periods:
+        raise SystemExit("Could not read the period dates from liigaporssi.fi/ohjeet.")
+    meta = {"updated": today.isoformat(), "count": len(players), "season": season}
+    dump = lambda o: json.dumps(o, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = (HERE / "template.html").read_text(encoding="utf-8")
-    page = page.replace("/*__DATA__*/[]", data).replace("/*__META__*/{}", json.dumps(meta))
+    page = (page.replace("/*__DATA__*/[]", dump(players))
+                .replace("/*__SCHED__*/[]", dump(schedule))
+                .replace("/*__PERIODS__*/[]", dump(periods))
+                .replace("/*__META__*/{}", dump(meta)))
     (HERE / "index.html").write_text(page, encoding="utf-8")
-    print(f"Built index.html with {len(players)} players ({meta['updated']}).")
+    print(f"Built index.html: {len(players)} players, {len(schedule)} games, "
+          f"{len(periods)} periods ({meta['updated']}).")
 
 
 if __name__ == "__main__":
