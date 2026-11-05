@@ -1242,18 +1242,20 @@ function renderTeamPick() {
   const order = { G: 0, D: 1, F: 2 };
   const lineup = [...TEAM.list].sort((a, b) => order[a.p] - order[b.p] || score(b) - score(a));
   if (!TP.slot || !TEAM.ids.has(TP.slot)) TP.slot = lineup[0].id;
-  if (!TP.team || !TEAMS.includes(TP.team)) TP.team = [...TEAMS].sort((a, b) => (WIN.cnt[b] || 0) - (WIN.cnt[a] || 0))[0];
+  if (!TP.team || (TP.team !== "all" && !TEAMS.includes(TP.team))) TP.team = "all";
+  const all = TP.team === "all";
   $("tpSlot").innerHTML = lineup.map(p => `<option value="${p.id}">${POSNAME[p.p]} · ${esc(p.n)} (${esc(p.t)}, ${k(p.v)})</option>`).join("");
   $("tpSlot").value = TP.slot;
-  $("tpTeam").innerHTML = TEAMS.map(t => `<option value="${esc(t)}">${esc(t)} · ${gms(WIN.cnt[t] || 0)}</option>`).join("");
+  $("tpTeam").innerHTML = `<option value="all">All teams</option>` + TEAMS.map(t => `<option value="${esc(t)}">${esc(t)} · ${gms(WIN.cnt[t] || 0)}</option>`).join("");
   $("tpTeam").value = TP.team;
   const o = BYID.get(TP.slot);
   const left = S.budget - TEAM.list.reduce((s, p) => s + p.v, 0);
   const room = o.v + left;
-  $("tpMoney").innerHTML = `Money for this spot: <b>${eur(room)}</b> (${esc(o.n)}'s price ${k(o.v)} + money left ${k(left)}). Ranked by ${scoreUnit()} for the selected window.`;
-  const cands = DATA.filter(q => q.t === TP.team && q.p === o.p && q.id !== o.id && !TEAM.ids.has(q.id) && !S.bans.has(q.id))
-    .sort((a, b) => score(b) - score(a)).slice(0, 6);
-  if (!cands.length) { $("tpList").innerHTML = `<p class="hint">${esc(TP.team)} has no other ${{ G: "goalies", D: "defencemen", F: "forwards" }[o.p]} available.</p>`; return; }
+  $("tpMoney").innerHTML = `Money for this spot: <b>${eur(room)}</b> (${esc(o.n)}'s price ${k(o.v)} + money left ${k(left)}). ${all ? "Showing the best players from every team who fit this money" : `Showing ${esc(TP.team)}'s best players`}, ranked by ${scoreUnit()} for the selected window.`;
+  // All teams: the best players in the league who fit this spot's money. One team: its best players, affordable or not.
+  const cands = DATA.filter(q => (all ? q.v <= room && q.gp >= S.minGp : q.t === TP.team) && q.p === o.p && q.id !== o.id && !TEAM.ids.has(q.id) && !S.bans.has(q.id))
+    .sort((a, b) => score(b) - score(a)).slice(0, all ? 8 : 6);
+  if (!cands.length) { $("tpList").innerHTML = `<p class="hint">${all ? `No other ${{ G: "goalie", D: "defenceman", F: "forward" }[o.p]} fits ${eur(room)}.` : `${esc(TP.team)} has no other ${{ G: "goalies", D: "defencemen", F: "forwards" }[o.p]} available.`}</p>`; return; }
   const bestId = (cands.find(q => q.v <= room) || {}).id;
   $("tpList").innerHTML = (bestId ? "" : `<p class="hint">None of ${esc(TP.team)}'s top ${POSNAME[o.p]} players fit ${eur(room)}. Free up money by changing another player first.</p>`)
     + cands.map(q => {

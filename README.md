@@ -35,7 +35,7 @@ Open `index.html` in a browser. It's a single file with no server or install nee
 **Pick from a team.** Want a player from a particular team? Click **Swap** on a player card on the rink, or use the **Pick from a team** panel under the rink:
 
 1. **Replace:** choose which of your six players to replace.
-2. **Team:** choose the team you want. Each team shows its number of games in the window.
+2. **Team:** choose **All teams** (the default) to see the best players from the whole league who fit your money, or pick one team. Each team shows its number of games in the window.
 3. The panel lists that team's best players at that position, ranked by the metric you optimize for. It shows each player's price, games and how they compare with your current player. The money for the spot is the current player's price plus your money left. The best player who fits is marked **Best fit**, and players you can't afford are greyed out, with how much they're over.
 4. **Swap in** puts the new player in that spot. Your other five players are locked so they stay. Unlock any of them in the left panel to let the optimizer change them again.
 
