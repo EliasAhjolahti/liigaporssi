@@ -12,7 +12,9 @@ import html
 import json
 import pathlib
 import re
+import time
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 HERE = pathlib.Path(__file__).parent
 URL = (
@@ -103,6 +105,72 @@ def fetch_periods() -> list[dict]:
     return periods
 
 
+CACHE = HERE / "cache" / "history.json"
+
+
+def fetch_points(pid: str, period: int, start: datetime.date, end: datetime.date) -> list[list]:
+    """Per-game LPP for one player in one period, as [[iso_date, lpp], ...]."""
+    url = f"https://liigaporssi.fi/player/get-points/{pid}/{period}/0/0"
+    for attempt in range(3):
+        try:
+            data = json.loads(get(url))["data"]
+            break
+        except Exception:
+            if attempt == 2:
+                raise
+            time.sleep(1 + attempt)
+    out = []
+    for label, pts in zip(data["labels"], data["datasets"][0]["data"]):
+        if pts is None:
+            continue
+        d, m = (int(x) for x in label.strip(".").split("."))
+        year = start.year if (m, d) >= (start.month, start.day) else end.year
+        day = datetime.date(year, m, d)
+        if start <= day <= end:
+            out.append([day.isoformat(), pts])
+    return out
+
+
+def fetch_history(players: list[dict], periods: list[dict], today: datetime.date) -> dict:
+    """Per-game LPP for every player in every period that has started.
+
+    Finished periods are cached in cache/history.json, so later builds only download the current period.
+    """
+    cache = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
+    hist = {}
+    for per in periods:
+        start, end = datetime.date.fromisoformat(per["start"]), datetime.date.fromisoformat(per["end"])
+        if start > today:
+            continue
+        key = str(per["n"])
+        finished = end < today
+        cached = cache.get(key, {})
+        todo = [p["id"] for p in players if not (finished and p["id"] in cached)]
+        if todo:
+            print(f"  jakso {key}: downloading points for {len(todo)} players...")
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                for pid, games in zip(todo, pool.map(lambda i: fetch_points(i, per["n"], start, end), todo)):
+                    cached[pid] = games
+        hist[key] = cached
+        if finished:
+            cache[key] = cached
+    CACHE.parent.mkdir(exist_ok=True)
+    CACHE.write_text(json.dumps(cache, separators=(",", ":")), encoding="utf-8")
+    return hist
+
+
+def compact_history(hist: dict, season_start: str) -> dict:
+    """{id: [[day_offset, lpp], ...]} with days counted from the season start, to keep the page small."""
+    base = datetime.date.fromisoformat(season_start)
+    out = {}
+    for games in hist.values():
+        for pid, rows in games.items():
+            out.setdefault(pid, []).extend([(datetime.date.fromisoformat(d) - base).days, p] for d, p in rows)
+    for rows in out.values():
+        rows.sort()
+    return {"start": season_start, "p": {k: v for k, v in out.items() if v}}
+
+
 def main():
     players = parse(fetch())
     if len(players) < 100:
@@ -113,12 +181,14 @@ def main():
     periods = fetch_periods()
     if not periods:
         raise SystemExit("Could not read the period dates from liigaporssi.fi/ohjeet.")
+    history = compact_history(fetch_history(players, periods, today), periods[0]["start"])
     meta = {"updated": today.isoformat(), "count": len(players), "season": season}
     dump = lambda o: json.dumps(o, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     page = (HERE / "template.html").read_text(encoding="utf-8")
     page = (page.replace("/*__DATA__*/[]", dump(players))
                 .replace("/*__SCHED__*/[]", dump(schedule))
                 .replace("/*__PERIODS__*/[]", dump(periods))
+                .replace("/*__HIST__*/{}", dump(history))
                 .replace("/*__META__*/{}", dump(meta)))
     (HERE / "index.html").write_text(page, encoding="utf-8")
     print(f"Built index.html: {len(players)} players, {len(schedule)} games, "

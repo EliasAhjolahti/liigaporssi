@@ -205,6 +205,61 @@ tr.banned td { opacity: .5; }
 .foot { font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .foot a { color: var(--blue); }
 @media (prefers-reduced-motion: no-preference) { .slot { transition: border-color .2s, box-shadow .2s; } }
+
+/* Player links */
+.plink { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; text-align: left; }
+.plink:hover { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Played periods */
+.hgrid { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .hgrid { grid-template-columns: minmax(0, 1fr); } }
+.hteam { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.hteam li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.hteam li .t { font-size: 12px; color: var(--muted); }
+.hteam li b { font-family: var(--font-display); font-size: 18px; color: var(--blue); }
+.hteam li.sum { font-weight: 600; }
+.hteam li.sum b { color: var(--good); }
+
+/* Player card */
+dialog#card { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); color: var(--ink); padding: 0; width: min(860px, calc(100% - 24px)); max-height: calc(100% - 24px); overflow: auto; }
+dialog#card::backdrop { background: rgba(6, 14, 22, .55); }
+.cardin { display: flex; flex-direction: column; gap: 18px; padding: 20px clamp(14px, 3vw, 26px) 24px; }
+.cardhead { display: flex; justify-content: space-between; gap: 12px; align-items: start; border-bottom: 3px solid var(--red); padding-bottom: 12px; }
+.cardhead h2 { font-size: clamp(26px, 4vw, 34px); line-height: 1.05; }
+.cardhead .sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.closebtn { border: 1px solid var(--line); background: var(--sunk); color: var(--ink); border-radius: 8px; padding: 6px 12px; font: 600 14px var(--font-body); cursor: pointer; flex: none; }
+.cardtiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+@media (max-width: 720px) { .cardtiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .cardtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.cardtiles .tot .v { font-size: 24px; }
+.statline { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 14px; color: var(--muted); }
+.statline b { color: var(--ink); font-weight: 600; }
+.chartbox { position: relative; }
+.chartbox svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chartbox text { font-family: var(--font-body); font-size: 11px; fill: var(--muted); }
+.chartbox text.plab { font-family: var(--font-display); font-weight: 600; letter-spacing: .06em; font-size: 12px; fill: var(--muted); }
+.chartlegend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.chartlegend i { display: inline-block; vertical-align: middle; margin-right: 6px; }
+.chartlegend i.bar { width: 10px; height: 12px; border-radius: 3px 3px 0 0; background: var(--blue); opacity: 1; }
+.chartlegend i.neg { width: 10px; height: 12px; border-radius: 0 0 3px 3px; background: var(--red); }
+.chartlegend i.avg { width: 18px; height: 2px; background: var(--ink); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--surface); border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); z-index: 5; }
+.tip[hidden] { display: none; }
+.tip b { font-family: var(--font-display); font-size: 16px; }
+.cardcols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 720px) { .cardcols { grid-template-columns: minmax(0, 1fr); } }
+.mini { width: 100%; font-size: 14px; }
+.mini th { position: static; }
+.mini th, .mini td { padding: 6px 8px; }
+.upcoming { display: flex; flex-wrap: wrap; gap: 6px; }
+.upcoming .ug { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); }
+.upcoming .cell { width: 44px; text-align: center; }
+details.allgames summary { cursor: pointer; color: var(--blue); font-size: 14px; }
+details.allgames .tablewrap { margin-top: 8px; max-height: 280px; }
+.cardacts { display: flex; flex-wrap: wrap; gap: 8px; }
+.cardacts button { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--sunk); color: var(--ink); border-radius: 8px; padding: 7px 12px; font: 500 14px var(--font-body); cursor: pointer; }
+.cardacts button svg { width: 15px; height: 15px; }
+.cardacts button.on { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
 </style>
 
 <div class="wrap">
@@ -212,7 +267,7 @@ tr.banned td { opacity: .5; }
     <div>
       <div class="eyebrow">IS Liigapörssi · 1 MV · 2 P · 3 H</div>
       <h1>LPP Lineup <span>Lab</span></h1>
-      <p>Every Liiga player's price, stats and games left, an optimizer that finds the best six-player team for your budget, and a trade planner that shows when to switch players.</p>
+      <p>Every Liiga player's price, stats and games left, an optimizer that finds the best six-player team for your budget, a trade planner that shows when to switch players, and a card with a points chart for every player.</p>
     </div>
     <div class="meta">Prices &amp; stats: liigaporssi.fi · <b id="updated"></b><br>Schedule: liiga.fi · <span id="count"></span> players</div>
   </header>
@@ -305,6 +360,37 @@ tr.banned td { opacity: .5; }
     <div class="tablewrap"><table class="grid" id="schedule"></table></div>
   </section>
 
+  <section aria-label="Played periods" id="periods">
+    <div class="sechead">
+      <div><div class="eyebrow">Played periods</div><h2>Period results</h2>
+        <p class="lead">How every player scored in a finished period, and the best team you could have picked with your budget. Click a player to open their card.</p></div>
+      <div class="filters">
+        <div class="field"><label for="hper">Period</label><select id="hper"></select></div>
+        <div class="field"><span class="lbl">Position</span>
+          <div class="seg" id="hpos" role="group" aria-label="Position">
+            <button type="button" data-v="all" aria-pressed="true">All</button>
+            <button type="button" data-v="G" aria-pressed="false">MV</button>
+            <button type="button" data-v="D" aria-pressed="false">P</button>
+            <button type="button" data-v="F" aria-pressed="false">H</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="totals">
+      <div class="tot"><div class="k">Game days</div><div class="v" id="hDays">–</div><div class="s" id="hDaysS"></div></div>
+      <div class="tot"><div class="k">Top scorer</div><div class="v red" id="hTop">–</div><div class="s" id="hTopS"></div></div>
+      <div class="tot"><div class="k">Best team in hindsight</div><div class="v grn" id="hBest">–</div><div class="s" id="hBestS"></div></div>
+      <div class="tot"><div class="k">Average player</div><div class="v" id="hAvg">–</div><div class="s">LPP per game played</div></div>
+    </div>
+    <div class="hgrid">
+      <div class="panel">
+        <div><div class="eyebrow">Best team in hindsight</div><p class="hint" id="hBestHint"></p></div>
+        <ol class="hteam" id="hteam"></ol>
+      </div>
+      <div class="tablewrap tall" style="max-height:520px"><table id="htbl"></table></div>
+    </div>
+  </section>
+
   <section aria-label="All players" id="players">
     <div class="sechead">
       <div><div class="eyebrow">Season totals · games &amp; projection for the selected window</div><h2>All players</h2></div>
@@ -327,11 +413,16 @@ tr.banned td { opacity: .5; }
   </section>
 </div>
 
+<dialog id="card" aria-labelledby="cardName">
+  <div class="cardin" id="cardBody"></div>
+</dialog>
+
 <script>
 const DATA = /*__DATA__*/[];
 const SCHED = /*__SCHED__*/[];   // [date, home, away, ended]
 const PERIODS = /*__PERIODS__*/[]; // {n, start, end}
 const META = /*__META__*/{};
+const HIST = /*__HIST__*/{};      // {start, p: {id: [[dayOffset, lpp], ...]}}
 
 const POSNAME = { G: "MV", D: "P", F: "H" };
 const NEED = { G: 1, D: 2, F: 3 };
@@ -365,6 +456,22 @@ DATA.forEach(p => {
 });
 const BYID = new Map(DATA.map(p => [p.id, p]));
 const TEAMS = [...new Set(DATA.map(p => p.t))].sort((a, b) => a.localeCompare(b, "fi"));
+
+// Per-game LPP history: HIST.p[id] = [[days since HIST.start, lpp], ...]
+const periodOf = iso => (PERIODS.find(p => iso >= p.start && iso <= p.end) || { n: 0 }).n;
+const GAMEAT = new Map();
+for (const [d, h, a] of SCHED) { GAMEAT.set(d + "|" + h, { opp: a, home: true }); GAMEAT.set(d + "|" + a, { opp: h, home: false }); }
+DATA.forEach(p => {
+  p.hist = ((HIST.p || {})[p.id] || []).map(([o, l]) => { const d = isoAdd(HIST.start, o); return { d, l, per: periodOf(d), g: GAMEAT.get(d + "|" + p.t) || null }; });
+  const last = p.hist.slice(-5);
+  p.l5 = last.length ? last.reduce((s, x) => s + x.l, 0) / last.length : 0;
+  p.per = {};
+  for (const x of p.hist) {
+    const r = p.per[x.per] || (p.per[x.per] = { gp: 0, lpp: 0, best: -Infinity });
+    r.gp++; r.lpp += x.l; r.best = Math.max(r.best, x.l);
+  }
+});
+const PLAYED = PERIODS.filter(per => DATA.some(p => p.per[per.n]));
 
 // ---------- state ----------
 const store = {
@@ -414,15 +521,19 @@ function makeWindow(win) {
 }
 const games = p => WIN.cnt[p.t] || 0;
 const proj = p => p.ept * games(p);
-const score = p => S.metric === "ppg" ? p.ppg : S.metric === "proj" ? proj(p) : p.lpp;
+const SCORE = p => S.metric === "ppg" ? p.ppg : S.metric === "proj" ? proj(p) : p.lpp;
+const score = SCORE;
 
 // ---------- optimizer ----------
 // Exact search: 0/1 knapsack over (goalies, defenders, forwards) counts x budget in 1000 € units.
 // Players are processed in ascending score order, so when player i is added as the final pick
 // they are the highest scorer in the team and therefore the captain (×1.3).
-function optimize() {
+// Options: score (scoring function), free (ignore locks/excludes and min. games) - used for hindsight teams.
+function optimize(o = {}) {
+  const score = o.score || SCORE;
+  const LOCKS = o.free ? new Set() : S.locks, BANS = o.free ? new Set() : S.bans, MINGP = o.free ? 0 : S.minGp;
   const mult = S.captain ? 1.3 : 1;
-  const locked = [...S.locks].map(id => BYID.get(id));
+  const locked = [...LOCKS].map(id => BYID.get(id));
   const need = { ...NEED };
   for (const p of locked) need[p.p]--;
   for (const pos in need) if (need[pos] < 0) return { error: `You have locked too many ${POSNAME[pos]} players. A team has ${NEED[pos]}.` };
@@ -432,7 +543,7 @@ function optimize() {
   const B = Math.floor((S.budget - lockCost) / UNIT);
   if (B < 0) return { error: `Your locked players cost ${eur(lockCost)}, which is more than the budget.` };
 
-  let pool = DATA.filter(p => !S.locks.has(p.id) && !S.bans.has(p.id) && need[p.p] > 0 && p.gp >= S.minGp && p.v / UNIT <= B);
+  let pool = DATA.filter(p => !LOCKS.has(p.id) && !BANS.has(p.id) && need[p.p] > 0 && p.gp >= MINGP && p.v / UNIT <= B);
   // drop players dominated by at least `need` cheaper-or-equal, better-or-equal players at the same position
   pool = ["G", "D", "F"].flatMap(pos => {
     const arr = pool.filter(p => p.p === pos).sort((a, b) => a.v - b.v || score(b) - score(a));
@@ -484,7 +595,7 @@ function optimize() {
   }
   if (best.val === -Infinity) {
     const cheapest = Object.entries(need).reduce((sum, [pos, n]) => {
-      const prices = DATA.filter(p => p.p === pos && !S.locks.has(p.id) && !S.bans.has(p.id) && p.gp >= S.minGp).map(p => p.v).sort((a, b) => a - b);
+      const prices = DATA.filter(p => p.p === pos && !LOCKS.has(p.id) && !BANS.has(p.id) && p.gp >= MINGP).map(p => p.v).sort((a, b) => a - b);
       return sum + prices.slice(0, n).reduce((a, b) => a + b, 0);
     }, lockCost);
     return { error: `No team fits this budget. The cheapest possible lineup with these settings costs ${eur(cheapest)}.` };
@@ -558,7 +669,7 @@ function slotHTML(p, posLabel) {
   const val = S.metric === "ppg" ? p.ppg.toFixed(2) + " /GP" : S.metric === "proj" ? f1(proj(p)) + " proj" : p.lpp + " LPP";
   return `<div class="slot${cap ? " cap" : ""}${lk ? " locked" : ""}">
     <div class="top"><span class="pos">${posLabel}</span>${cap ? '<span class="badge" title="Captain: points ×1.3">C</span>' : ""}</div>
-    <div class="nm">${esc(p.n)}</div>
+    <div class="nm">${plink(p)}</div>
     <div class="tm">${esc(p.t)} · ${games(p)} games left · ${p.lpp} LPP</div>
     <div class="nums"><span class="l">${val}</span><span>${k(p.v)}</span></div>
     <div class="acts">
@@ -646,7 +757,7 @@ function renderPlanner() {
     const untilTxt = t.until < days.length ? ` until ${dayShort(days[t.until - 1])}` : "";
     return `<div class="trade">
       <div class="when"><span>before</span><b>${dayShort(on)}</b><span>after ${dayShort(before)}</span></div>
-      <div class="swap"><span class="out">${esc(t.out.n)}</span> → <span class="in">${esc(t.in.n)}</span>
+      <div class="swap"><span class="out">${plink(t.out)}</span> → <span class="in">${plink(t.in)}</span>
         <small>${POSNAME[t.in.p]} · ${esc(t.out.t)} ${t.outG} games → ${esc(t.in.t)} ${t.inG} games${untilTxt} · ${k(t.out.v)} → ${k(t.in.v)}</small></div>
       <div class="gain">+${f1(t.gain)}</div>
     </div>`;
@@ -706,6 +817,7 @@ const COLS = {
       { k: "pim", h: "PIM", t: "Penalty minutes" }, { k: "sh", h: "Shots", t: "Shots" }, { k: "bl", h: "Blk", t: "Blocked shots" }],
   tail: [
     { k: "ppg", h: "LPP/GP", t: "Liigapörssi points per game played", f: p => p.ppg.toFixed(2) },
+    { k: "l5", h: "Last 5", t: "Average LPP in the player's last 5 games", f: p => p.hist.length ? f1(p.l5) : "–" },
     { k: "lpp", h: "LPP", cls: "lpp", t: "Liigapörssi points, season" },
     { k: "v", h: "Price", t: "Current price", f: p => eur(p.v) },
     { k: "eff", h: "LPP/100k", t: "Season LPP per 100 000 € of price", f: p => p.eff.toFixed(1) },
@@ -735,13 +847,160 @@ function renderTable() {
   document.querySelector("#tbl tbody").innerHTML = rows.map(p => `<tr class="${TEAM.ids.has(p.id) ? "inteam" : ""}${S.bans.has(p.id) ? " banned" : ""}">` + cs.map(c => {
     let v = c.f ? c.f(p) : esc(p[c.k]);
     if (c.k === "eff") v = `<span class="bar" style="width:${Math.max(2, p.eff / maxEff * 36)}px"></span>${v}`;
+    if (c.k === "n") v = plink(p);
     if (c.k === "n" && TEAM.ids.has(p.id) && TEAM.captain && TEAM.captain.id === p.id && S.captain) v += ' <span class="badge">C</span>';
     return `<td class="${c.cls || ""}${c.k === "gp" && p.gp === 0 ? " dim" : ""}">${v}</td>`;
   }).join("") + "</tr>").join("");
   $("shown").textContent = `Showing ${rows.length} of ${DATA.length} players. Highlighted rows are in the optimized team.`;
 }
 
-function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSchedule(); renderTable(); }
+// ---------- rendering: played periods ----------
+const plink = p => `<button type="button" class="plink" data-card="${p.id}">${esc(p.n)}</button>`;
+let HP = { per: PLAYED.length ? PLAYED[PLAYED.length - 1].n : 0, pos: "all" };
+function renderPeriods() {
+  const sec = $("periods");
+  if (!PLAYED.length) { sec.hidden = true; return; }
+  const n = HP.per, per = PERIODS.find(p => p.n === n);
+  const ps = DATA.filter(p => p.per[n]);
+  const days = new Set(ps.flatMap(p => p.hist.filter(x => x.per === n).map(x => x.d)));
+  const ended = per.end < TODAY;
+  $("hDays").textContent = days.size;
+  $("hDaysS").textContent = `${dayShort(per.start)}–${dayShort(per.end)}${ended ? "" : " · in progress"}`;
+  const top = ps.reduce((a, p) => (!a || p.per[n].lpp > a.per[n].lpp ? p : a), null);
+  $("hTop").textContent = top ? top.per[n].lpp : "–";
+  $("hTopS").textContent = top ? `${top.n} · ${top.t}` : "";
+  const allGames = ps.reduce((s, p) => s + p.per[n].gp, 0);
+  $("hAvg").textContent = allGames ? f1(ps.reduce((s, p) => s + p.per[n].lpp, 0) / allGames) : "–";
+  // hindsight team: best possible lineup by this period's LPP, with today's prices and your budget
+  const r = optimize({ score: p => (p.per[n] ? p.per[n].lpp : 0), free: true });
+  if (r.error) { $("hBest").textContent = "–"; $("hBestS").textContent = ""; $("hteam").innerHTML = `<li>${esc(r.error)}</li>`; }
+  else {
+    const order = { G: 0, D: 1, F: 2 };
+    const team = [...r.team].sort((a, b) => order[a.p] - order[b.p] || b.per[n].lpp - a.per[n].lpp);
+    const raw = team.reduce((s, p) => s + p.per[n].lpp, 0);
+    const bonus = S.captain ? Math.ceil(r.captain.per[n].lpp * 1.3) - r.captain.per[n].lpp : 0;
+    $("hBest").textContent = fmt(raw + bonus);
+    $("hBestS").textContent = S.captain ? `incl. captain +${bonus}` : "LPP";
+    $("hBestHint").textContent = `With ${eur(S.budget)} and today's prices. Real prices at the start of jakso ${n} were different, so this is a guide.`;
+    $("hteam").innerHTML = team.map(p => `<li><span class="ptag">${POSNAME[p.p]}</span><span>${plink(p)}${S.captain && p.id === r.captain.id ? ' <span class="badge">C</span>' : ""}<br><span class="t">${esc(p.t)} · ${p.per[n].gp} GP · ${k(p.v)}</span></span><b>${p.per[n].lpp}</b></li>`).join("")
+      + `<li class="sum"><span></span><span>Total · ${k(team.reduce((s, p) => s + p.v, 0))}</span><b>${fmt(raw + bonus)}</b></li>`;
+  }
+  const rows = ps.filter(p => HP.pos === "all" || p.p === HP.pos).sort((a, b) => b.per[n].lpp - a.per[n].lpp || a.per[n].gp - b.per[n].gp).slice(0, 150);
+  $("htbl").innerHTML = `<thead><tr><th>#</th><th class="l">Player</th><th class="l">Team</th><th class="l">Pos</th><th title="Games played in the period">GP</th><th title="LPP in the period">LPP</th><th title="LPP per game in the period">LPP/GP</th><th title="Season LPP per game">Season/GP</th><th title="Best single game">Best</th><th title="Current price">Price now</th></tr></thead><tbody>`
+    + rows.map((p, i) => { const r = p.per[n]; return `<tr class="${TEAM.ids.has(p.id) ? "inteam" : ""}"><td class="dim">${i + 1}</td><td class="l name">${plink(p)}</td><td class="l">${esc(p.t)}</td><td class="l"><span class="ptag">${POSNAME[p.p]}</span></td><td>${r.gp}</td><td class="lpp">${r.lpp}</td><td>${(r.lpp / r.gp).toFixed(2)}</td><td class="dim">${p.ppg.toFixed(2)}</td><td>${r.best}</td><td>${eur(p.v)}</td></tr>`; }).join("") + "</tbody>";
+}
+
+// ---------- player card ----------
+function chartSVG(p) {
+  const g = p.hist, n = g.length;
+  const W = 760, H = 240, m = { l: 34, r: 8, t: 26, b: 26 }, pw = W - m.l - m.r, ph = H - m.t - m.b;
+  const vals = g.map(x => x.l);
+  const hiV = Math.max(10, ...vals), loV = Math.min(0, ...vals);
+  const step = hiV - loV <= 25 ? 5 : hiV - loV <= 60 ? 10 : 20;
+  const top = Math.ceil(hiV / step) * step, bot = Math.floor(loV / step) * step;
+  const y = v => m.t + (top - v) / (top - bot) * ph;
+  const slot = pw / Math.max(n, 1), bw = Math.max(2, Math.min(18, slot - 2)), r = Math.min(4, bw / 2);
+  const x = i => m.l + slot * i + slot / 2;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="LPP per game for ${esc(p.n)}, ${n} games">`;
+  // period bands
+  for (const per of PERIODS) {
+    const idx = g.map((x, i) => x.per === per.n ? i : -1).filter(i => i >= 0);
+    if (!idx.length) continue;
+    const x0 = m.l + slot * idx[0], x1 = m.l + slot * (idx[idx.length - 1] + 1);
+    if (per.n % 2 === 0) s += `<rect x="${x0}" y="${m.t - 20}" width="${x1 - x0}" height="${ph + 20}" fill="var(--sunk)"/>`;
+    s += `<text class="plab" x="${x0 + 4}" y="${m.t - 7}">JAKSO ${per.n}</text>`;
+  }
+  // grid + y labels
+  for (let v = bot; v <= top; v += step) {
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"${v === 0 ? "" : ' stroke-dasharray="2 3"'}/>`;
+    s += `<text x="${m.l - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  // bars, rounded at the data end, anchored to zero
+  g.forEach((d, i) => {
+    const x0 = x(i) - bw / 2, y0 = y(0), y1 = y(d.l), h = Math.abs(y1 - y0);
+    if (d.l === 0) { s += `<rect x="${x0}" y="${y0 - 1}" width="${bw}" height="2" rx="1" fill="var(--muted)"/>`; return; }
+    const rr = Math.min(r, h);
+    s += d.l > 0
+      ? `<path d="M${x0},${y0}V${y1 + rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + bw - rr}Q${x0 + bw},${y1} ${x0 + bw},${y1 + rr}V${y0}Z" fill="var(--blue)"/>`
+      : `<path d="M${x0},${y0}V${y1 - rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + bw - rr}Q${x0 + bw},${y1} ${x0 + bw},${y1 - rr}V${y0}Z" fill="var(--red)"/>`;
+  });
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-width="1"/>`;
+  // 5-game rolling average
+  const avg = g.map((_, i) => { const w = vals.slice(Math.max(0, i - 4), i + 1); return w.reduce((a, b) => a + b, 0) / w.length; });
+  if (n > 1) s += `<path d="${avg.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join("")}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity=".75"/>`;
+  // x labels: first game of each month
+  let lastM = -1, lastX = -99;
+  g.forEach((d, i) => { const dd = dt(d.d), mo = dd.getMonth(); if (mo !== lastM && x(i) - lastX > 40) { s += `<text x="${x(i)}" y="${H - 6}" text-anchor="middle">${dd.getDate()}.${mo + 1}.</text>`; lastM = mo; lastX = x(i); } });
+  // hit targets (full column height)
+  g.forEach((d, i) => { s += `<rect class="hit" data-i="${i}" x="${m.l + slot * i}" y="${m.t - 20}" width="${slot}" height="${ph + 20}" fill="transparent"/>`; });
+  return { svg: s + "</svg>", avg, x, y, W };
+}
+
+let CARD = null;
+function openCard(id) {
+  const p = BYID.get(id); if (!p) return;
+  CARD = id;
+  const g = p.hist, lk = S.locks.has(id), bn = S.bans.has(id);
+  const tile = (kk, v, sub) => `<div class="tot"><div class="k">${kk}</div><div class="v">${v}</div><div class="s">${sub}</div></div>`;
+  const stats = p.p === "G"
+    ? [["W-L-T", `${p.w}-${p.l}-${p.d}`], ["Saves", p.sv], ["GA", p.ga], ["SV%", p.sv + p.ga ? (p.sv / (p.sv + p.ga) * 100).toFixed(1) : "–"], ["Shutouts", p.so], ["PIM", p.pim]]
+    : [["Goals", p.g], ["Assists", p.a], ["Points", p.pts], ["+/−", `+${p.pl} / −${p.mi}`], ["Shots", p.sh], ["Blocks", p.bl], ["PIM", p.pim]];
+  const stars = (p.s1 || 0) + (p.s2 || 0) + (p.s3 || 0);
+  const upcoming = WIN.days.map((d, i) => ({ d, x: WIN.by[p.t] && WIN.by[p.t][i] })).filter(u => u.x);
+  const ch = g.length ? chartSVG(p) : null;
+  const perRows = PERIODS.filter(per => p.per[per.n]).map(per => { const r = p.per[per.n]; return `<tr><td class="l">Jakso ${per.n}</td><td>${r.gp}</td><td class="lpp">${r.lpp}</td><td>${(r.lpp / r.gp).toFixed(2)}</td><td>${r.best}</td></tr>`; }).join("");
+  $("cardBody").innerHTML = `
+    <div class="cardhead">
+      <div><div class="eyebrow">${{ G: "Maalivahti", D: "Puolustaja", F: "Hyökkääjä" }[p.p]} · ${esc(p.t)}</div><h2 id="cardName">${esc(p.n)}</h2>
+        <div class="sub">${eur(p.v)} · ${p.gp} games · ${stars} star${stars === 1 ? "" : "s"}${TEAM.ids.has(id) ? " · in your lineup" : ""}</div></div>
+      <button type="button" class="closebtn" id="cardClose">Close</button>
+    </div>
+    <div class="cardtiles">
+      ${tile("Season LPP", p.lpp, `${p.gp} games`)}
+      ${tile("LPP/GP", p.ppg.toFixed(2), "per game played")}
+      ${tile("Last 5", g.length ? f1(p.l5) : "–", "LPP per game")}
+      ${tile("LPP/100k", p.eff.toFixed(1), "season value")}
+      ${tile("Games left", games(p), WIN.per ? `jakso ${WIN.per.n}${S.win === "all" ? "" : `, next ${S.win} d`}` : "")}
+      ${tile("Projected", f1(proj(p)), "LPP in window")}
+    </div>
+    <div class="statline">${stats.map(([a, b]) => `<span>${a} <b>${b}</b></span>`).join("")}</div>
+    <div>
+      <div class="row-between" style="margin-bottom:6px"><span class="eyebrow">LPP per game</span>
+        <div class="chartlegend"><span><i class="bar"></i>LPP</span><span><i class="neg"></i>negative</span><span><i class="avg"></i>5-game average</span></div></div>
+      ${ch ? `<div class="chartbox" id="chartbox">${ch.svg}<div class="tip" id="tip" hidden></div></div>` : '<p class="hint">No games played yet this season.</p>'}
+    </div>
+    <div class="cardcols">
+      <div><div class="eyebrow" style="margin-bottom:6px">By period</div>
+        ${perRows ? `<div class="tablewrap"><table class="mini"><thead><tr><th class="l">Period</th><th>GP</th><th>LPP</th><th>LPP/GP</th><th>Best</th></tr></thead><tbody>${perRows}</tbody></table></div>` : '<p class="hint">No games yet.</p>'}</div>
+      <div><div class="eyebrow" style="margin-bottom:6px">Upcoming games${WIN.per ? ` · jakso ${WIN.per.n}` : ""}</div>
+        ${upcoming.length ? `<div class="upcoming">${upcoming.map(u => `<span class="ug">${gameCell(u.x)}${dayShort(u.d)}</span>`).join("")}</div>` : '<p class="hint">No games in the selected window.</p>'}</div>
+    </div>
+    ${g.length ? `<details class="allgames"><summary>All ${g.length} games</summary><div class="tablewrap"><table class="mini"><thead><tr><th class="l">Date</th><th class="l">Opponent</th><th class="l">Period</th><th>LPP</th></tr></thead><tbody>
+      ${[...g].reverse().map(x => `<tr><td class="l">${dayShort(x.d)}</td><td class="l">${x.g ? (x.g.home ? "vs " : "@ ") + esc(x.g.opp) : "–"}</td><td class="l">${x.per ? "Jakso " + x.per : "–"}</td><td class="lpp">${x.l}</td></tr>`).join("")}</tbody></table></div></details>` : ""}
+    <div class="cardacts">
+      <button type="button" class="${lk ? "on" : ""}" data-act="lock" data-id="${id}">${ICON.lock}${lk ? "Unlock" : "Lock into team"}</button>
+      <button type="button" class="${bn ? "on" : ""}" data-act="ban" data-id="${id}">${ICON.ban}${bn ? "Allow in optimizer" : "Exclude from optimizer"}</button>
+    </div>`;
+  $("cardClose").onclick = () => closeCard();
+  if (ch) {
+    const box = $("chartbox"), tip = $("tip");
+    box.querySelectorAll(".hit").forEach(el => {
+      el.addEventListener("pointerenter", () => {
+        const i = +el.dataset.i, d = g[i], rect = box.getBoundingClientRect(), sc = rect.width / ch.W;
+        tip.innerHTML = `${dayShort(d.d)}${d.g ? ` · ${d.g.home ? "vs" : "@"} ${esc(d.g.opp)}` : ""}<br><b>${d.l} LPP</b> · 5-game avg ${f1(ch.avg[i])}`;
+        tip.style.left = Math.min(Math.max(ch.x(i) * sc, 90), rect.width - 90) + "px";
+        tip.style.top = ch.y(Math.max(d.l, 0)) * sc + "px";
+        tip.hidden = false;
+      });
+    });
+    box.addEventListener("pointerleave", () => { tip.hidden = true; });
+  }
+  const dlg = $("card");
+  if (!dlg.open) { if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", ""); }
+}
+function closeCard() { CARD = null; const dlg = $("card"); if (dlg.close) dlg.close(); else dlg.removeAttribute("open"); }
+
+function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSchedule(); renderPeriods(); renderTable(); if (CARD) openCard(CARD); }
 
 // ---------- controls ----------
 $("updated").textContent = META.updated ? dt(META.updated).toLocaleDateString("fi-FI") : "";
@@ -803,6 +1062,19 @@ document.querySelector("#tbl thead").addEventListener("click", e => {
   const key = th.dataset.k;
   if (S.sort === key) S.dir *= -1; else { S.sort = key; S.dir = ["n", "t", "p"].includes(key) ? 1 : -1; }
   renderTable();
+});
+$("hper").innerHTML = PLAYED.map(p => `<option value="${p.n}">Jakso ${p.n} · ${dayShort(p.start)}–${dayShort(p.end)}${p.end < TODAY ? "" : " (in progress)"}</option>`).join("");
+$("hper").value = HP.per;
+$("hper").addEventListener("change", e => { HP.per = +e.target.value; renderPeriods(); });
+$("hpos").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return; HP.pos = b.dataset.v;
+  [...$("hpos").children].forEach(x => x.setAttribute("aria-pressed", String(x.dataset.v === HP.pos))); renderPeriods();
+});
+$("card").addEventListener("close", () => { CARD = null; });
+$("card").addEventListener("click", e => { if (e.target === $("card")) closeCard(); }); // click on the backdrop
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-card]");
+  if (c) { openCard(c.dataset.card); return; }
 });
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;

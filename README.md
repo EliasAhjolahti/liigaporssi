@@ -10,6 +10,8 @@ This is an unofficial fan tool. It isn't affiliated with Liigapörssi, Ilta-Sano
 - **Games left and projection.** For each Liigapörssi period (jakso), the app counts how many games each team plays. *Projected LPP* is a player's LPP per team game multiplied by their team's games in the selected window.
 - **Team optimizer.** Enter a budget and the app builds the best legal Liigapörssi team: 1 goalie (MV), 2 defencemen (P) and 3 forwards (H). The result is exact, not a guess: the app finds the highest possible total within the budget.
 - **Trade planner.** Players only score on days their team plays. The planner suggests trades that swap a player whose team is about to rest for one whose team plays more. It tells you which day to make each trade, how many games it gains and the expected LPP gain.
+- **Player cards.** Click any player's name to open their card. It has a bar chart of their LPP in every game this season with a 5-game average line, their stats by period, their last-5-games form, their upcoming games, and a list of all their games with the opponent and the points.
+- **Played periods.** Pick a finished period (jakso) to see every player's games, LPP, LPP per game and best game in that period. It also shows the best team you could have picked with your budget in hindsight.
 - **Schedule grid.** Every team's games day by day for the selected window, with home and away games, total games, games in the next 7 days and the longest break.
 - **Captain bonus.** The optimizer can include the captain's ×1.3 multiplier.
 - **Lock and exclude.** Lock a player to force them into the team, or exclude one (for example an injured player) to see the next best option.
@@ -44,6 +46,12 @@ Each suggestion shows when to make the trade. For example, "before **ti 15.12.**
 
 The schedule grid shows which teams have the most games and the longest breaks. Click a team name to see that team's players in the table.
 
+### Player cards and past periods
+
+Click a player's name anywhere in the app (the rink, the trade list, the period results or the player table) to open their card. Hover over or tap a bar in the chart to see the date, the opponent, the points and the 5-game average. Shaded bands show the periods. You can lock or exclude the player from the card. Press Esc or **Close** to close it.
+
+In **Period results**, choose a period and a position. The best hindsight team uses today's prices, because the prices at the start of that period aren't available.
+
 ## Updating the data
 
 Prices change every day and stats change after every game, so update the data before you make trades.
@@ -59,7 +67,8 @@ The script:
 1. downloads all players from the feed behind the [Liigapörssi player search](https://liigaporssi.fi/liigaporssi/pelaajahaku), using season totals
 2. downloads the regular-season schedule and results from the official Liiga API (`liiga.fi/api/v2/games`)
 3. reads the period dates from the [Liigapörssi rules page](https://liigaporssi.fi/ohjeet)
-4. adds all of this to `template.html` and writes `index.html`, stamped with today's date
+4. downloads every player's LPP game by game for each period that has started (the data behind the charts on Liigapörssi's player cards). Finished periods are saved in `cache/history.json`, so later builds only download the current period. This takes about 10 seconds per period.
+5. adds all of this to `template.html` and writes `index.html`, stamped with today's date
 
 If Liigapörssi changes its page format, the script stops with an error instead of writing a broken page.
 
@@ -81,6 +90,7 @@ git push
 | `template.html` | The app: layout, styles and JavaScript. Edit this file, not `index.html`. |
 | `build.py` | Downloads fresh data and builds `index.html` from the template. |
 | `index.html` | The generated app with the data included. |
+| `cache/history.json` | Saved game-by-game points for finished periods. Delete it to download everything again. |
 
 ## How it works
 
