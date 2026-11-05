@@ -46,6 +46,8 @@ Each suggestion shows when to make the trade. For example, "before **ti 15.12.**
 
 **Trade on a chosen day.** Below the timeline, use the **Trade before** slider to pick the day you want to make a trade (for example ti 1.12.). Use **Keep until** to pick how long you'd keep the new player; the default is the end of the period. For each player in your lineup, the cards show how many games their team plays in that stretch, and the 3 best affordable replacements with their games and LPP gain. The player with the biggest possible gain is listed first. If no one gains points, the card says **Keep**. A replacement is affordable if it costs no more than the player's price plus your money left.
 
+To keep a player no matter what, click **Lock (don't trade)** on their card. The card turns dark grey and says **Locked**. That player stays in your lineup, and neither the optimizer nor the trade planner will change them. You can lock as many players as you like. Click **Unlock** on the card, or remove the "no trades" chip in the left panel, to undo it.
+
 The schedule grid shows which teams have the most games and the longest breaks. Click a team name to see that team's players in the table.
 
 ### Player cards and past periods

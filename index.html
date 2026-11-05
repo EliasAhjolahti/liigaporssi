@@ -22,6 +22,10 @@
   --good: #1d7a46;
   --warn: #a35a00;
   --rink: #f7fafc;
+  --kept: #3d464f;      /* locked-from-trades card: dark grey */
+  --kept-ink: #f1f4f6;
+  --kept-muted: #bac4cd;
+  --kept-line: #58626c;
   --font-display: "Saira Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
 }
@@ -30,14 +34,14 @@
     --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
     --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
     --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
-    --warn: #f0a640; --rink: #0f1b25; color-scheme: dark;
+    --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0a131b; --surface: #111d28; --sunk: #0d1821; --ink: #e5edf3; --muted: #8fa1b1;
   --line: #22323f; --red: #ff5468; --blue: #7aa5ff; --blue-soft: #182a44; --good: #4cc883;
   --game: #4f7fe0; --game-ink: #06101c; --away: #1e3354; --away-ink: #c9dafb;
-  --warn: #f0a640; --rink: #0f1b25; color-scheme: dark;
+  --warn: #f0a640; --rink: #0f1b25; --kept: #3a4148; --kept-ink: #eef1f3; --kept-muted: #aab4bd; --kept-line: #545d66; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -224,6 +228,20 @@ tr.banned td { opacity: .5; }
 .swapcard li .gain { font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--good); white-space: nowrap; }
 .swapcard li .gain.neg { color: var(--muted); }
 .swapcard .keep { padding: 10px 12px; font-size: 13px; color: var(--muted); }
+.swapcard .cardfoot { margin-top: auto; padding: 8px 12px 10px; border-top: 1px solid var(--line); }
+.keepbtn { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 10px; font: 500 13px var(--font-body); cursor: pointer; }
+.keepbtn:hover { border-color: var(--ink); }
+.keepbtn svg { width: 14px; height: 14px; }
+.lockedtag { display: inline-block; font-family: var(--font-display); font-weight: 700; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; background: var(--kept-ink); color: var(--kept); border-radius: 4px; padding: 1px 6px; vertical-align: 1px; }
+/* locked card: dark grey */
+.swapcard.kept { background: var(--kept); border-color: var(--kept); color: var(--kept-ink); }
+.swapcard.kept .outp, .swapcard.kept .cardfoot { border-color: var(--kept-line); }
+.swapcard.kept .t, .swapcard.kept .keep, .swapcard.kept .g small { color: var(--kept-muted); }
+.swapcard.kept .ptag { color: var(--kept-muted); border-color: var(--kept-line); }
+.swapcard.kept .plink:hover { color: var(--kept-ink); }
+.swapcard.kept .keepbtn { background: transparent; color: var(--kept-ink); border-color: var(--kept-line); }
+.swapcard.kept .keepbtn:hover { border-color: var(--kept-ink); }
+.chip.kept { background: var(--kept); color: var(--kept-ink); border-color: var(--kept); }
 
 /* Player links */
 .plink { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; text-align: left; }
@@ -520,13 +538,14 @@ const S = {
   period: defaultPeriod,
   locks: new Set(store.get("locks", []).filter(id => BYID.has(id))),
   bans: new Set(store.get("bans", []).filter(id => BYID.has(id))),
+  keep: new Set(store.get("keep", []).filter(id => BYID.has(id))), // never traded, always in the lineup
   q: "", pos: "all", team: "all", maxP: 450000, sort: "proj", dir: -1,
 };
 let TEAM = { ids: new Set(), captain: null, list: [] };
 const save = () => {
   store.set("budget", S.budget); store.set("metric2", S.metric); store.set("minGp2", S.minGp); store.set("captain", S.captain);
   store.set("win", S.win); store.set("trades", S.trades); store.set("minGain", S.minGain);
-  store.set("locks", [...S.locks]); store.set("bans", [...S.bans]);
+  store.set("locks", [...S.locks]); store.set("bans", [...S.bans]); store.set("keep", [...S.keep]);
 };
 
 // ---------- games window ----------
@@ -561,7 +580,7 @@ const score = SCORE;
 // Options: score (scoring function), free (ignore locks/excludes and min. games) - used for hindsight teams.
 function optimize(o = {}) {
   const score = o.score || SCORE;
-  const LOCKS = o.free ? new Set() : S.locks, BANS = o.free ? new Set() : S.bans, MINGP = o.free ? 0 : S.minGp;
+  const LOCKS = o.free ? new Set() : new Set([...S.locks, ...S.keep]), BANS = o.free ? new Set() : S.bans, MINGP = o.free ? 0 : S.minGp;
   const mult = S.captain ? 1.3 : 1;
   const locked = [...LOCKS].map(id => BYID.get(id));
   const need = { ...NEED };
@@ -659,6 +678,7 @@ function planTrades(team, W) {
   for (let n = 0; n < S.trades; n++) {
     let best = null;
     slots.forEach((slot, si) => {
+      if (S.keep.has(slot.segs[0].p.id)) return; // locked in "Trade on a chosen day": never traded
       slot.segs.forEach((seg, j) => {
         const e = j + 1 < slot.segs.length ? slot.segs[j + 1].from : T;
         const o = seg.p;
@@ -695,7 +715,7 @@ function planTrades(team, W) {
 function slotHTML(p, posLabel) {
   if (!p) return `<div class="slot"><div class="top"><span class="pos">${posLabel}</span></div><div class="nm" style="color:var(--muted)">Empty</div></div>`;
   const cap = TEAM.captain && TEAM.captain.id === p.id && S.captain;
-  const lk = S.locks.has(p.id);
+  const lk = S.locks.has(p.id) || S.keep.has(p.id);
   const val = S.metric === "ppg" ? p.ppg.toFixed(2) + " /GP" : S.metric === "proj" ? f1(proj(p)) + " proj" : p.lpp + " LPP";
   return `<div class="slot${cap ? " cap" : ""}${lk ? " locked" : ""}">
     <div class="top"><span class="pos">${posLabel}</span>${cap ? '<span class="badge" title="Captain: points ×1.3">C</span>' : ""}</div>
@@ -755,11 +775,11 @@ function renderLineup() {
 
 function renderPinned() {
   const el = $("pinned");
-  const items = [...S.locks].map(id => [id, "lock"]).concat([...S.bans].map(id => [id, "ban"]));
+  const items = [...S.keep].map(id => [id, "keep"]).concat([...S.locks].filter(id => !S.keep.has(id)).map(id => [id, "lock"]), [...S.bans].map(id => [id, "ban"]));
   if (!items.length) { el.innerHTML = '<span class="hint">None yet.</span>'; return; }
   el.innerHTML = items.map(([id, t]) => {
     const p = BYID.get(id);
-    return `<button type="button" class="chip${t === "ban" ? " x" : ""}" data-act="${t}" data-id="${id}" title="Remove">${t === "lock" ? ICON.lock.replace("<svg", '<svg width="12" height="12"') : ""}${esc(p.n)} <span aria-hidden="true">×</span></button>`;
+    return `<button type="button" class="chip${t === "ban" ? " x" : t === "keep" ? " kept" : ""}" data-act="${t}" data-id="${id}" title="${t === "keep" ? "Locked from trades. Click to unlock" : "Remove"}">${t !== "ban" ? ICON.lock.replace("<svg", '<svg width="12" height="12"') : ""}${esc(p.n)}${t === "keep" ? " · no trades" : ""} <span aria-hidden="true">×</span></button>`;
   }).join("");
 }
 
@@ -788,7 +808,7 @@ function renderPlanner() {
     return `<div class="trade">
       <div class="when"><span>before</span><b>${dayShort(on)}</b><span>after ${dayShort(before)}</span></div>
       <div class="swap"><span class="out">${plink(t.out)}</span> → <span class="in">${plink(t.in)}</span>
-        <small>${POSNAME[t.in.p]} · ${esc(t.out.t)} ${t.outG} games → ${esc(t.in.t)} ${t.inG} games${untilTxt} · ${k(t.out.v)} → ${k(t.in.v)}</small></div>
+        <small>${POSNAME[t.in.p]} · ${esc(t.out.t)} ${t.outG} game${t.outG === 1 ? "" : "s"} → ${esc(t.in.t)} ${t.inG} game${t.inG === 1 ? "" : "s"}${untilTxt} · ${k(t.out.v)} → ${k(t.in.v)}</small></div>
       <div class="gain">+${f1(t.gain)}</div>
     </div>`;
   }).join("") : `<div class="trade none">No single trade gains at least ${S.minGain} LPP in this window. Lower the minimum gain or choose a longer window to see more options.</div>`;
@@ -1061,17 +1081,22 @@ function renderSwap() {
     const opts = DATA.filter(q => q.p === o.p && !inTeam.has(q.id) && !S.bans.has(q.id) && q.gp >= S.minGp && q.v <= o.v + left && q.ept > 0)
       .map(q => ({ q, gain: V(q) - V(o) })).sort((x, y) => y.gain - x.gain).slice(0, 3);
     return { o, opts, best: opts.length ? opts[0].gain : -Infinity };
-  }).sort((x, y) => y.best - x.best || order[x.o.p] - order[y.o.p]);
-  $("swaplist").innerHTML = cards.map(({ o, opts }) => `
-    <div class="swapcard">
-      <div class="outp"><div><span class="ptag">${POSNAME[o.p]}</span> <span class="nm">${plink(o)}</span><div class="t">${esc(o.t)} · ${k(o.v)} · ${f1(o.ept)} LPP per team game</div></div>
-        <div class="g">${G(o)}<small>GAMES</small></div></div>
+  }).sort((x, y) => S.keep.has(x.o.id) - S.keep.has(y.o.id) || y.best - x.best || order[x.o.p] - order[y.o.p]);
+  $("swaplist").innerHTML = cards.map(({ o, opts }) => {
+    const kept = S.keep.has(o.id);
+    const head = `<div class="outp"><div><span class="ptag">${POSNAME[o.p]}</span> <span class="nm">${plink(o)}</span>${kept ? ' <span class="lockedtag">Locked</span>' : ""}<div class="t">${esc(o.t)} · ${k(o.v)} · ${f1(o.ept)} LPP per team game</div></div>
+        <div class="g">${G(o)}<small>GAMES</small></div></div>`;
+    const btn = `<button type="button" class="keepbtn" data-act="keep" data-id="${o.id}" aria-pressed="${kept}">${ICON.lock}${kept ? "Unlock" : "Lock (don't trade)"}</button>`;
+    if (kept) return `<div class="swapcard kept">${head}<div class="keep">This player stays in your team. The optimizer and the trade planner won't change them.</div><div class="cardfoot">${btn}</div></div>`;
+    return `<div class="swapcard">${head}
       ${opts.length && opts[0].gain <= 0 ? `<div class="keep"><b>Keep.</b> No affordable player gains LPP over these games. Closest options:</div>` : ""}
       ${opts.length ? `<ol>${opts.map(({ q, gain }) => `<li>
-          <div>${plink(q)}<div class="t">${esc(q.t)} · ${G(q)} games · ${k(q.v)}${q.v > o.v ? ` (+${k(q.v - o.v)})` : ""} · ${f1(V(q))} proj.</div></div>
+          <div>${plink(q)}<div class="t">${esc(q.t)} · ${G(q)} game${G(q) === 1 ? "" : "s"} · ${k(q.v)}${q.v > o.v ? ` (+${k(q.v - o.v)})` : ""} · ${f1(V(q))} proj.</div></div>
           <span class="gain${gain > 0 ? "" : " neg"}">${gain > 0 ? "+" : ""}${f1(gain)}</span></li>`).join("")}</ol>`
         : `<div class="keep">No affordable player at this position.</div>`}
-    </div>`).join("");
+      <div class="cardfoot">${btn}</div>
+    </div>`;
+  }).join("");
 }
 
 function renderAll() { save(); buildWindow(); syncHints(); renderLineup(); renderPinned(); renderPlanner(); renderSwap(); renderSchedule(); renderPeriods(); renderTable(); if (CARD) openCard(CARD); }
@@ -1121,7 +1146,7 @@ $("mingp").addEventListener("input", e => { S.minGp = +e.target.value; $("mingpv
 $("captain").addEventListener("change", e => { S.captain = e.target.checked; renderAll(); });
 $("trades").addEventListener("input", e => { S.trades = +e.target.value; save(); renderPlanner(); });
 $("mingain").addEventListener("input", e => { S.minGain = +e.target.value; save(); renderPlanner(); });
-$("clearpins").addEventListener("click", () => { S.locks.clear(); S.bans.clear(); renderAll(); });
+$("clearpins").addEventListener("click", () => { S.locks.clear(); S.bans.clear(); S.keep.clear(); renderAll(); });
 $("q").addEventListener("input", e => { S.q = e.target.value; renderTable(); });
 $("teamf").addEventListener("change", e => { S.team = e.target.value; renderTable(); });
 $("maxp").addEventListener("input", e => { S.maxP = +e.target.value; $("maxpv").textContent = k(S.maxP); renderTable(); });
@@ -1164,8 +1189,12 @@ document.addEventListener("click", e => {
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]"); if (!b) return;
   const id = b.dataset.id;
-  if (b.dataset.act === "lock") { S.bans.delete(id); S.locks.has(id) ? S.locks.delete(id) : S.locks.add(id); }
-  else { S.locks.delete(id); S.bans.has(id) ? S.bans.delete(id) : S.bans.add(id); }
+  if (b.dataset.act === "keep") { S.bans.delete(id); S.keep.has(id) ? S.keep.delete(id) : S.keep.add(id); }
+  else if (b.dataset.act === "lock") {
+    S.bans.delete(id);
+    if (S.locks.has(id) || S.keep.has(id)) { S.locks.delete(id); S.keep.delete(id); } else S.locks.add(id);
+  }
+  else { S.locks.delete(id); S.keep.delete(id); S.bans.has(id) ? S.bans.delete(id) : S.bans.add(id); }
   renderAll();
 });
 
